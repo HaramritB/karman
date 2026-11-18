@@ -37,6 +37,7 @@ namespace Karman.EditorTools
             AssetDatabase.Refresh();
             ConfigureRenderPipeline();
             ConfigurePlayer();
+            VabSceneBuilder.Catalog();
             BuildSpaceScene(MenuScenePath, true);
             BuildScene();
             VabSceneBuilder.Build(VabScenePath);
@@ -238,35 +239,17 @@ namespace Karman.EditorTools
             lighting.planetShineLight = shine;
             lighting.glare = glare.transform;
 
+            VesselController vessel = null; VesselView vesselView = null;
             if (!menu) {
-            // Vessel
-            var vesselGo = new GameObject("Vessel (Gemini)");
-            var vessel = vesselGo.AddComponent<VesselController>();
-            var modelAsset = Load<GameObject>($"{Root}/Art/Models/Spacecraft/Gemini.fbx");
-            if (modelAsset != null)
-            {
-                var model = (GameObject)PrefabUtility.InstantiatePrefab(modelAsset);
-                model.name = "Gemini Model";
-                model.transform.SetParent(vesselGo.transform, false);
-                var b = RendererBounds(model);
-                float scale = b.size.y > 0 ? 5.8f / b.size.y : 1f;
-                model.transform.localScale *= scale;
-                b = RendererBounds(model);
-                model.transform.localPosition -= b.center;
-                Debug.Log($"[KarmanSetup] Gemini bounds after normalise: {RendererBounds(model).size} (scale {scale})");
-                foreach (var r in model.GetComponentsInChildren<Renderer>()) { r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true; }
-                vessel.model = model.transform;
-            }
-            var plume = new GameObject("Plume");
-            plume.transform.SetParent(vesselGo.transform, false);
-            plume.transform.localPosition = new Vector3(0, -2.9f, 0);
-            plume.transform.localScale = new Vector3(2.6f, 9f, 2.6f);
-            plume.AddComponent<MeshFilter>().sharedMesh = SaveMesh(PlumeMesh(), "PlumeCone");
-            var pr = plume.AddComponent<MeshRenderer>();
-            pr.sharedMaterial = plumeMat;
-            pr.shadowCastingMode = ShadowCastingMode.Off;
-            vessel.plume = pr;
-
+            // Vessel: assembled at runtime from the launch request (VAB) or the default Gemini craft.
+            var vesselGo = new GameObject("Vessel");
+            vessel = vesselGo.AddComponent<VesselController>();
+            vesselView = vesselGo.AddComponent<VesselView>();
+            vesselView.catalog = VabSceneBuilder.Catalog();
+            vesselView.plumeMaterial = plumeMat;
+            vesselView.plumeMesh = SaveMesh(PlumeMesh(), "PlumeCone");
+            vessel.view = vesselView;
+            LaunchSiteBuilder.Build(earthMat);
             }
 
             // Cameras
@@ -317,7 +300,17 @@ namespace Karman.EditorTools
             var hudDoc = hudGo.AddComponent<UIDocument>();
             hudDoc.panelSettings = panel;
             hudDoc.sortingOrder = 0;
-            hudGo.AddComponent<FlightHud>();
+            var hud = hudGo.AddComponent<FlightHud>();
+            var navball = hudGo.AddComponent<NavballView>();
+            navball.ballMaterial = Mat("Navball", "Karman/Navball");
+            navball.vessel = vessel;
+            hud.navball = navball;
+            var autopilot = simGo.AddComponent<AscentAutopilot>();
+            autopilot.vessel = vessel;
+            hud.autopilot = autopilot;
+            var launchCapture = simGo.AddComponent<LaunchCapture>();
+            launchCapture.orbitCamera = orbitCam;
+            launchCapture.autopilot = autopilot;
 
             var mapGo = new GameObject("Map View");
             var mapLabelsGo = new GameObject("Map Labels");

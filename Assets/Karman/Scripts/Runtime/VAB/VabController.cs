@@ -21,8 +21,7 @@ namespace Karman.VAB
     {
         public Camera cam;
         public Transform craftRoot;
-        public string[] modelIds;
-        public GameObject[] modelPrefabs;
+        public Karman.Vehicles.PartModelCatalog catalog;
         public Material ghostOk, ghostBad, selectionMaterial;
         public Transform comMarker, cotMarker;
         public float snapPixels = 48f;
@@ -195,6 +194,15 @@ namespace Karman.VAB
                 Rebuild();
             }
             catch (Exception e) { Status = "Load failed: " + e.Message; Changed?.Invoke(); }
+        }
+
+        /// <summary>Hand the current craft to the flight scene, standing on LC-39A.</summary>
+        public void Launch()
+        {
+            if (Craft.RootId < 0) { Status = "Nothing to launch"; Changed?.Invoke(); return; }
+            if (!Craft.Parts.Any(p => Lookup(p.PartId).Engine != null && p.Stage >= 0)) { Status = "No staged engines: add an engine or press Auto in staging"; Changed?.Invoke(); return; }
+            Karman.Vehicles.LaunchRequest.Craft = Craft.DeepClone();
+            UnityEngine.SceneManagement.SceneManager.LoadScene("Flight");
         }
 
         public void Rename(string name) { Craft.Name = string.IsNullOrWhiteSpace(name) ? "Untitled" : name.Trim(); Changed?.Invoke(); }
@@ -434,10 +442,7 @@ namespace Karman.VAB
 
         GameObject CreateVisual(PartDefinition def, int instanceId)
         {
-            int i = Array.IndexOf(modelIds, def.ModelId);
-            GameObject go = i >= 0 && modelPrefabs[i] ? Instantiate(modelPrefabs[i], craftRoot) : GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            go.transform.SetParent(craftRoot, false);
-            go.name = def.Title;
+            GameObject go = catalog.Create(def, craftRoot);
             if (instanceId >= 0)
             {
                 go.AddComponent<PartTag>().instanceId = instanceId;

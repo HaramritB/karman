@@ -1,5 +1,6 @@
 using System.IO;
 using Karman.VAB;
+using Karman.Vehicles;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -143,11 +144,7 @@ namespace Karman.EditorTools
             var vabGo = new GameObject("VAB");
             var vab = vabGo.AddComponent<VabController>();
             vab.cam = cam; vab.craftRoot = craftRoot; vab.platformTop = new Vector3(0, 6.1f, 0);
-            string[] ids = { "gemini", "tank_8", "tank_10", "tank_16", "tank_32", "engine_booster", "engine_cluster9", "engine_vacuum", "srb", "decoupler", "radial_decoupler", "adapter", "interstage", "nose" };
-            var prefabs = new GameObject[ids.Length];
-            for (int i = 0; i < ids.Length; i++)
-                prefabs[i] = ids[i] == "gemini" ? GeminiPrefab() : KarmanSetup.Load<GameObject>($"{Parts}/{ids[i]}.fbx");
-            vab.modelIds = ids; vab.modelPrefabs = prefabs;
+            vab.catalog = Catalog();
             var ghostOk = KarmanSetup.Mat("VAB_GhostOk", "Karman/Line"); ghostOk.SetColor("_Color", new Color(0.3f, 1f, 0.55f, 0.45f));
             var ghostBad = KarmanSetup.Mat("VAB_GhostBad", "Karman/Line"); ghostBad.SetColor("_Color", new Color(1f, 0.3f, 0.25f, 0.4f));
             var sel = KarmanSetup.Mat("VAB_Selection", "Karman/Line"); sel.SetColor("_Color", new Color(0.36f, 0.78f, 1f, 0.28f));
@@ -169,6 +166,25 @@ namespace Karman.EditorTools
 
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             EditorSceneManager.SaveScene(scene, path);
+        }
+
+        static PartModelCatalog catalogCache;
+
+        /// <summary>Shared part-model catalogue asset (VAB and flight).</summary>
+        public static PartModelCatalog Catalog()
+        {
+            if (catalogCache != null) return catalogCache;
+            const string path = "Assets/Karman/Settings/PartModelCatalog.asset";
+            var cat = AssetDatabase.LoadAssetAtPath<PartModelCatalog>(path);
+            if (cat == null) { cat = ScriptableObject.CreateInstance<PartModelCatalog>(); AssetDatabase.CreateAsset(cat, path); }
+            string[] ids = { "gemini", "tank_8", "tank_10", "tank_16", "tank_32", "engine_booster", "engine_cluster9", "engine_vacuum", "srb", "decoupler", "radial_decoupler", "adapter", "interstage", "nose" };
+            var prefabs = new GameObject[ids.Length];
+            for (int i = 0; i < ids.Length; i++)
+                prefabs[i] = ids[i] == "gemini" ? GeminiPrefab() : KarmanSetup.Load<GameObject>($"{Parts}/{ids[i]}.fbx");
+            cat.modelIds = ids; cat.prefabs = prefabs;
+            EditorUtility.SetDirty(cat);
+            AssetDatabase.SaveAssets();
+            return catalogCache = cat;
         }
 
         static Transform Marker(string name, Color c, Transform parent)

@@ -20,6 +20,8 @@ namespace Karman.Simulation
         [Tooltip("Largest on-rails substep in simulated seconds.")]
         public double maxSubstep = 120;
 
+        /// <summary>Warp levels up to this index keep full physics (thrust, drag, attitude); above it the vessel is on rails.</summary>
+        public const int MaxPhysicsWarpIndex = 2;
         public static readonly double[] WarpLevels = { 1, 2, 5, 10, 50, 100, 1_000, 10_000, 100_000, 1_000_000 };
 
         public SolarSystem System { get; private set; }
@@ -58,24 +60,26 @@ namespace Karman.Simulation
             }
             if (Paused) return;
 
-            if (ActiveVessel != null && ActiveVessel.WantsThrust && WarpIndex > 0) SetWarp(0);
+            if (ActiveVessel != null && !ActiveVessel.CanWarp && WarpIndex > MaxPhysicsWarpIndex) SetWarp(MaxPhysicsWarpIndex);
 
             double dt = Math.Min(UnityEngine.Time.unscaledDeltaTime, 0.1) * Warp;
-            int n = Math.Max(1, (int)Math.Ceiling(dt / maxSubstep));
+            bool physics = WarpIndex <= MaxPhysicsWarpIndex;   // full dynamics (thrust, drag, attitude) up to 5×
+            double step = physics ? 0.05 : maxSubstep;
+            int n = Math.Max(1, (int)Math.Ceiling(dt / step));
             n = Math.Min(n, 400);
             double h = dt / n;
             for (int i = 0; i < n; i++)
             {
                 Time += h;
                 System.SetTime(Time);
-                if (ActiveVessel != null) ActiveVessel.Step(h, WarpIndex == 0);
+                if (ActiveVessel != null) ActiveVessel.Step(h, physics);
             }
         }
 
         public void SetWarp(int index)
         {
             index = Mathf.Clamp(index, 0, WarpLevels.Length - 1);
-            if (index > 0 && ActiveVessel != null && !ActiveVessel.CanWarp) index = 0;
+            if (index > MaxPhysicsWarpIndex && ActiveVessel != null && !ActiveVessel.CanWarp) index = MaxPhysicsWarpIndex;
             if (index == WarpIndex) return;
             WarpIndex = index;
             WarpChanged?.Invoke(index);

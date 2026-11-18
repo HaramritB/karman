@@ -36,6 +36,14 @@ Earth heliocentric velocity within 0.05 km/s. GMST at J2000 matches 280.46061837
 - Strap-on boosters: stage ends at booster burnout; core carries over; auto-staging order verified.
 - JSON save/load round trip preserves parts, resources and Δv exactly (also in the player: 12,698.552 m/s before and after).
 
+## Atmosphere and ascent (Phase 3)
+- US Standard Atmosphere 1976: pressure, density, temperature within 1 % of the published table at 0, 5, 11, 20, 30, 50, 70 km.
+- FlightVehicle burn-to-depletion Δv equals the staging analysis (13,552.6 vs 13,556.3 m/s, 0.03 %).
+- Headless pad-to-orbit (game models + `AscentGuidance`, KSC due east): core 190.0 × 172.0 km, heavy 194.5 × 171.3 km,
+  i = 28.61°, max-Q 62 / 78 kPa.
+- In the built game (automated run, 5× physics warp during ascent): Kármán I Heavy reached **191.0 × 170.3 km,
+  i 28.61°, e 0.0016**, max-Q 73.1 kPa, 4,175 m/s left; one further orbit on rails: periapsis change 0.000 m.
+
 ## Approximations (documented)
-Point-mass gravity of the dominant body only (no J2, no third-body perturbations yet); fixed ΔT = 69.2 s;
+Rigid vehicle; drag only (no lift or aerodynamic torque yet); attitude authority = pod torque + engine gimbal; point-mass gravity of the dominant body only (no J2, no third-body perturbations yet); fixed ΔT = 69.2 s;
 Moon series truncated (≈ 1.5′); planetary elements valid 1800–2050.

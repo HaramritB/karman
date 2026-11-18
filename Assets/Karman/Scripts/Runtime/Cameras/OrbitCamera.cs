@@ -53,14 +53,20 @@ namespace Karman.Cameras
         double DefaultDistance()
         {
             var b = TargetBody();
-            return targetKind == TargetKind.Vessel ? 22 : b.Radius * 3.2;
+            return targetKind == TargetKind.Vessel ? VesselDistance() : b.Radius * 3.2;
+        }
+
+        double VesselDistance()
+        {
+            var v = SimulationController.Instance.ActiveVessel;
+            return v != null ? Math.Max(22, v.Length * 1.6 + 10) : 22;
         }
 
         CelestialBody TargetBody() => SimulationController.Instance.System.Get(targetBodyId);
 
         double MinDistance()
         {
-            if (targetKind == TargetKind.Vessel) return 6;
+            if (targetKind == TargetKind.Vessel) { var v = SimulationController.Instance.ActiveVessel; return v != null ? Math.Max(6, v.Length * 0.6) : 6; }
             return TargetBody().Radius * 1.05;
         }
 

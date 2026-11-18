@@ -26,10 +26,24 @@
 - [ ] Launch the built craft (Phase 3); procedural/configurable tank lengths; part LODs (9-engine cluster is 165k tris)
 - [ ] Part definitions as ScriptableObject/JSON assets for modding (currently `PartLibrary.cs`)
 
-## Phase 3–6
-Launch & atmospheric flight · maneuver nodes & encounters · lunar landing & return · polish. See the brief.
+## Phase 3 — Launch and atmospheric flight ✅ first pass (2026-11-18)
+- [x] VAB → LAUNCH: the built craft is assembled in flight and stands on LC-39A (28.608°N, 80.604°W), rotating with Earth
+- [x] Launch complex: raised pad, flame trench, fixed service structure, water tower, crawlerway, floodlights,
+      45 km curved ground patch with a local coastline; exhaust cloud particles
+- [x] Multi-stage flight: staging (Space), propellant flow per section, solid motors, gimbal-limited attitude,
+      US Standard Atmosphere 1976, Mach-dependent drag, hold-down release, ground contact, debris
+- [x] Plumes that widen and dim with falling ambient pressure; physics warp up to 5×, rails above
+- [x] Navball, stage stack with live Δv/TWR/burn time, Mach and dynamic pressure, event messages
+- [x] Ascent assistant (G) using `AscentGuidance`, verified headless and in the built game: pad → 191 × 170 km orbit
+- [ ] Aerodynamic torques/lift, reentry heating, parachutes (Phase 5), real terrain DEM tiles, launch audio
+- [ ] Navball heading labels; free/tracking/cinematic cameras
+
+## Phase 4–6
+Maneuver nodes & encounters · lunar landing & return · polish. See the brief.
 
 ## Known issues
+- Ground near the pad is washed out by atmospheric haze at low altitude, and its procedural detail is coarse.
+- Pad structures are simple box geometry; replace with sourced/modelled assets.
 - Earth surface from LEO is slightly hazy; atmosphere is single-scattering only.
 - Sky panorama longitude direction (mirror) not verified against star positions.
 - Moon libration ignored (prime meridian points at Earth).

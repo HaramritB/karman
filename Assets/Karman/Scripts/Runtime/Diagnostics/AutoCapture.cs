@@ -28,6 +28,7 @@ namespace Karman.Diagnostics
         {
             string dir = CommandLine.Value("-karmanCapture");
             if (string.IsNullOrEmpty(dir)) { enabled = false; return; }
+            if (SimulationController.Instance.ActiveVessel != null && SimulationController.Instance.ActiveVessel.IsLaunchFromPad) { enabled = false; return; }
             Directory.CreateDirectory(dir);
             StartCoroutine(Run(dir));
         }
@@ -41,8 +42,8 @@ namespace Karman.Diagnostics
                 new Shot { name = "01_vessel_closeup", setup = () => Vessel(16, 35, 8) },
                 new Shot { name = "02_vessel_earth_limb", setup = () => Vessel(45, 165, 4) },
                 new Shot { name = "03_vessel_wide", setup = () => Vessel(900, 200, 22) },
-                new Shot { name = "03b_prograde_burn", setup = () => { Vessel(28, 215, 10); sim.ActiveVessel.Sas = Karman.Flight.SasMode.Prograde; sim.ActiveVessel.Throttle = 1; burnStartProp = sim.ActiveVessel.Propulsion.Propellant; burnStartAp = sim.ActiveVessel.Trajectory.ApoapsisAltitude; },
-                           after = () => { var v = sim.ActiveVessel; v.Throttle = 0; burnLog = $"\"burn\": {{\"propellantUsedKg\": {burnStartProp - v.Propulsion.Propellant:F3}, \"apoapsisGainM\": {v.Trajectory.ApoapsisAltitude - burnStartAp:F1}, \"thrustN\": {v.Propulsion.MaxThrust(0):F0}" + "},"; } },
+                new Shot { name = "03b_prograde_burn", setup = () => { Vessel(28, 215, 10); sim.ActiveVessel.Sas = Karman.Flight.SasMode.Prograde; sim.ActiveVessel.Throttle = 1; burnStartProp = sim.ActiveVessel.Vehicle.PropellantRemaining; burnStartAp = sim.ActiveVessel.Trajectory.ApoapsisAltitude; },
+                           after = () => { var v = sim.ActiveVessel; v.Throttle = 0; burnLog = $"\"burn\": {{\"propellantUsedKg\": {burnStartProp - v.Vehicle.PropellantRemaining:F3}, \"apoapsisGainM\": {v.Trajectory.ApoapsisAltitude - burnStartAp:F1}, \"thrustN\": {v.CurrentMaxThrust:F0}" + "},"; } },
                 new Shot { name = "04_earth_terminator", setup = () => Body(SolarSystemData.Earth, 2.6e7, 125, 18) },
                 new Shot { name = "05_earth_nightside", setup = () => Body(SolarSystemData.Earth, 1.5e7, 35, 25) },
                 new Shot { name = "06_moon", setup = () => Body(SolarSystemData.Moon, 6.0e6, 150, 10) },

@@ -77,6 +77,24 @@ namespace Karman.Core
             CheckSphereOfInfluence();
         }
 
+        /// <summary>
+        /// Advance with a state-dependent non-gravitational acceleration (thrust + drag), RK4 with substeps.
+        /// <paramref name="extra"/> receives position/velocity relative to the reference body.
+        /// </summary>
+        public void Advance(double dt, Func<Vector3d, Vector3d, Vector3d> extra, double maxSubstep)
+        {
+            if (dt <= 0) return;
+            int n = Math.Max(1, (int)Math.Ceiling(dt / maxSubstep));
+            double h = dt / n;
+            double mu = Reference.Mu;
+            AccelerationFunc acc = (tt, r, v) => Integrators.PointMassGravity(r, mu) + extra(r, v);
+            var s = RelativeState;
+            for (int i = 0; i < n; i++) { s = Integrators.RK4(s, Time, h, acc); Time += h; }
+            RelativeState = s;
+            orbitDirty = true;
+            CheckSphereOfInfluence();
+        }
+
         /// <summary>Re-express the state relative to whichever body now dominates (patched conics).</summary>
         public bool CheckSphereOfInfluence()
         {

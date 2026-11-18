@@ -40,11 +40,23 @@ R rotates, Shift-click repeats, right-click cancels. Select a part and press Del
 ⌘Z / ⌘⇧Z undo/redo, ⌘S save (`~/Library/Application Support/com.karman.spaceflight/Craft`). Right-drag orbit,
 scroll zoom, middle-drag or Shift+scroll height, F frame. Staging: select a part, ▲/▼ to move its stage, Auto to reset.
 
+## Launching
+Build or load a craft in the VAB and press **LAUNCH**. It stands on LC-39A at Kennedy. Press Z (full throttle) and Space
+to ignite, or **G** for the ascent assistant, which flies to a ~190 km orbit using the same controls you have.
+Time warp , and . (up to 5× keeps full physics; higher warps are on rails and only allowed above the atmosphere).
+
+## Image generation (optional)
+`Tools/ImageMCP/server.py` is a local MCP server (`karman-images`, registered in `.mcp.json`) for OpenAI and Gemini image
+models. Keys come from `OPENAI_API_KEY` / `GEMINI_API_KEY`. Generation is blocked unless `KARMAN_IMAGE_BUDGET_USD` is
+set; every image is logged in `AI_ASSET_LOG.md`. Setup: `python3 -m venv Tools/ImageMCP/.venv &&
+Tools/ImageMCP/.venv/bin/pip install mcp openai google-genai pillow`, then approve the server when Claude Code asks.
+
 ## Flight controls
 | Action | Keys |
 |---|---|
 | Pitch / yaw / roll | W S / A D / Q E |
-| Throttle up / down, full, cut | Shift / Ctrl, Z, X |
+| Throttle up / down, full, cut; stage | Shift / Ctrl, Z, X; Space |
+| Ascent assistant | G |
 | SAS on/off; hold, prograde, retrograde, normal, anti-normal, radial out/in | T; 1 2 3 4 5 6 7 |
 | Time warp down / up / real time; pause | , / . / `/`; P |
 | Orbit camera, zoom | right-drag, scroll (or = / -) |

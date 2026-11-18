@@ -17,15 +17,40 @@ namespace Karman.UI
         Label clock, warp, met, vesselLabel, refBody;
         Label alt, orbV, surfV, vertV, latlon;
         Label ap, pe, inc, ecc, period, timeAp, timePe;
-        Label throttle, thrust, dv, burn, twr, sas, prop, light;
+        Label throttle, thrust, dv, burn, twr, sas, prop, light, stageLabel, machQ, toast;
+        VisualElement stageStack;
+        float toastUntil, nextAnalysis;
+        Karman.Core.Vehicles.CraftAnalysis analysis;
+        public NavballView navball;
+        public Karman.Flight.AscentAutopilot autopilot;
         VisualElement throttleFill, propFill, help, status;
         Label statusLabel;
         float nextRefresh;
 
-        void OnEnable()
+        void Start()
         {
             doc = GetComponent<UIDocument>();
             Build(doc.rootVisualElement);
+            var v = SimulationController.Instance.ActiveVessel;
+            if (v != null) v.Event += msg => { toast.text = msg; toastUntil = Time.unscaledTime + 4f; Debug.Log("[Karman] " + msg); };
+        }
+
+        static bool IsFedBy(Karman.Core.Vehicles.FlightVehicle veh, Karman.Core.Vehicles.PartInstance tank, System.Collections.Generic.List<int> engines)
+        {
+            // Same section = no separator between the tank and the engine along the tree.
+            int Section(Karman.Core.Vehicles.PartInstance p)
+            {
+                int depth = 0; var cur = p;
+                while (cur != null && cur.ParentId >= 0)
+                {
+                    if (veh.Def(cur).IsDecoupler) return cur.Id;
+                    cur = veh.Craft.Get(cur.ParentId); depth++;
+                }
+                return -1;
+            }
+            int s = Section(tank);
+            foreach (var e in engines) if (Section(veh.Craft.Get(e)) == s) return true;
+            return false;
         }
 
         void Build(VisualElement root)
@@ -84,17 +109,36 @@ namespace Karman.UI
             right.style.position = Position.Absolute; right.style.right = 18; right.style.bottom = 18;
             right.pickingMode = PickingMode.Ignore;
             var propPanel = HudStyle.PanelBox(270);
-            propPanel.Add(HudStyle.Title("PROPULSION · OAMS"));
+            propPanel.Add(HudStyle.Title("PROPULSION"));
             throttle = HudStyle.Row(propPanel, "Throttle");
             HudStyle.Bar(propPanel, HudStyle.Accent, out throttleFill);
-            prop = HudStyle.Row(propPanel, "Propellant");
+            prop = HudStyle.Row(propPanel, "Stage propellant");
             HudStyle.Bar(propPanel, new Color(0.45f, 0.9f, 0.6f), out propFill);
-            thrust = HudStyle.Row(propPanel, "Thrust");
-            twr = HudStyle.Row(propPanel, "Accel.");
-            dv = HudStyle.Row(propPanel, "Δv remaining");
-            burn = HudStyle.Row(propPanel, "Burn time");
-            sas = HudStyle.Row(propPanel, "SAS");
+            thrust = HudStyle.Row(propPanel, "Thrust · Isp");
+            twr = HudStyle.Row(propPanel, "TWR (local g)");
+            dv = HudStyle.Row(propPanel, "Δv stage / total");
+            burn = HudStyle.Row(propPanel, "Stage burn time");
+            machQ = HudStyle.Row(propPanel, "Mach · Q");
+            sas = HudStyle.Row(propPanel, "SAS · Assist");
             right.Add(propPanel);
+
+            var stagesPanel = HudStyle.PanelBox(270);
+            stagesPanel.style.marginBottom = 10;
+            stageLabel = HudStyle.Title("STAGES · Space to stage");
+            stagesPanel.Add(stageLabel);
+            stageStack = new VisualElement(); stagesPanel.Add(stageStack);
+            right.Insert(0, stagesPanel);
+
+            if (navball != null)
+            {
+                var nb = navball.Build();
+                nb.style.position = Position.Absolute; nb.style.bottom = 14; nb.style.left = Length.Percent(50); nb.style.translate = new Translate(-115, 0);
+                nb.pickingMode = PickingMode.Ignore;
+                root.Add(nb);
+            }
+            toast = new Label(); toast.style.position = Position.Absolute; toast.style.top = 108; toast.style.left = 0; toast.style.right = 0;
+            toast.style.unityTextAlign = TextAnchor.MiddleCenter; toast.style.color = HudStyle.Accent; toast.style.fontSize = 15; toast.style.unityFontStyleAndWeight = FontStyle.Bold;
+            root.Add(toast);
             root.Add(right);
 
             // Status banner.
@@ -112,9 +156,10 @@ namespace Karman.UI
             foreach (var line in new[]
             {
                 "W/S pitch · A/D yaw · Q/E roll",
-                "Shift/Ctrl throttle · Z full · X cut",
+                "Shift/Ctrl throttle · Z full · X cut · Space stage",
                 "T SAS on/off · 1 hold · 2 prograde · 3 retrograde",
-                "4/5 normal/anti-normal · 6/7 radial out/in",
+                "4/5 normal/anti-normal · 6/7 radial · 8 surface prograde",
+                "G ascent assist (pad to orbit)",
                 ", / . time warp · / real time · P pause",
                 "Right-drag orbit camera · scroll zoom",
                 "V cycle focus · Backspace vessel · M map · Esc menu",
@@ -173,19 +218,46 @@ namespace Karman.UI
             ecc.text = $"{o.eccentricity:F5}";
             period.text = o.IsHyperbolic ? "—" : HudStyle.Duration(o.Period);
 
-            var p = v.Propulsion;
+            var veh = v.Vehicle;
+            if (Time.unscaledTime > nextAnalysis || analysis == null) { analysis = veh.Analyse(v.Air.Pressure); nextAnalysis = Time.unscaledTime + 0.5f; }
+            var cur = analysis.Stages.Count > 0 ? analysis.Stages[0] : null;
             throttle.text = $"{v.Throttle * 100:F0}%";
             throttleFill.style.width = Length.Percent(v.Throttle * 100);
-            prop.text = $"{p.Propellant:N1} / {p.PropellantCapacity:N0} kg";
-            propFill.style.width = Length.Percent((float)(p.Propellant / p.PropellantCapacity * 100));
-            thrust.text = $"{v.CurrentThrust:N0} N";
-            twr.text = $"{p.MaxThrust(0) * v.Throttle / p.Mass:F3} m/s²";
-            dv.text = HudStyle.Speed(p.DeltaV());
-            burn.text = HudStyle.Duration(p.BurnTimeAtFullThrottle);
-            sas.text = v.Sas.ToString();
+            // Propellant of the sections feeding the engines that are lit (or will be lit next).
+            double stageProp = 0, stageCap = 0;
+            var feeding = veh.BurningEngines();
+            var secs = new System.Collections.Generic.HashSet<int>();
+            foreach (var p in veh.AttachedParts)
+            {
+                double have = 0, cap = 0;
+                foreach (var r in p.Resources) have += r.Mass;
+                foreach (var r in veh.Def(p).Resources) cap += r.Mass;
+                if (cap <= 0) continue;
+                bool inFeed = feeding.Count == 0 || IsFedBy(veh, p, feeding);
+                if (inFeed) { stageProp += have; stageCap += cap; }
+            }
+            prop.text = stageCap > 0 ? $"{stageProp / 1000:N2} / {stageCap / 1000:N1} t" : "—";
+            propFill.style.width = Length.Percent(stageCap > 0 ? (float)(stageProp / stageCap * 100) : 0);
+            thrust.text = v.CurrentThrust > 0 ? $"{v.CurrentThrust / 1000:N0} kN · {v.CurrentIsp:F0} s" : "0 kN";
+            double gLocal = tr.Reference.Mu / tr.RelativeState.position.sqrMagnitude;
+            twr.text = $"{v.CurrentThrust / (veh.Mass * gLocal):F2}  (max {v.CurrentMaxThrust / (veh.Mass * gLocal):F2})";
+            dv.text = $"{(cur != null ? cur.DeltaV : 0):N0} / {analysis.TotalDeltaV:N0} m/s";
+            burn.text = cur != null ? HudStyle.Duration(cur.BurnTime) : "—";
+            machQ.text = v.InAtmosphere ? $"{v.Mach:F2} · {v.DynamicPressure / 1000:F1} kPa" : "vacuum";
+            sas.text = $"{v.Sas}{(autopilot != null && autopilot.State != Karman.Flight.AscentAutopilot.Phase.Off ? " · " + autopilot.Status : "")}";
             sas.style.color = v.Sas == SasMode.Off ? HudStyle.Dim : HudStyle.Accent;
 
-            statusLabel.text = v.Crashed ? "VESSEL LOST · IMPACT" : (sim.WarpIndex == 0 && v.Throttle > 0 && p.Propellant <= 0) ? "PROPELLANT DEPLETED" : "";
+            stageStack.Clear();
+            stageLabel.text = $"STAGES · next {(veh.NextStage >= 0 ? veh.NextStage.ToString() : "—")} · Space";
+            foreach (var st in analysis.Stages)
+            {
+                var row = new Label($"S{st.Stage}  {st.DeltaV:N0} m/s  ·  {HudStyle.Duration(st.BurnTime)}  ·  TWR {st.StartTwr:F2}");
+                row.style.fontSize = 12; row.style.color = st == cur ? HudStyle.Text : HudStyle.Dim; row.style.marginTop = 2;
+                stageStack.Add(row);
+            }
+            if (v.Landed && !v.Launched) statusLabel.text = "ON THE PAD · Z full throttle, Space to ignite · or G for ascent assist";
+            else statusLabel.text = v.Crashed ? "VESSEL LOST · IMPACT" : v.Landed ? "LANDED" : "";
+            if (Time.unscaledTime > toastUntil) toast.text = "";
         }
     }
 }

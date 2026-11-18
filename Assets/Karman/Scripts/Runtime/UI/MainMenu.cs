@@ -53,7 +53,7 @@ namespace Karman.UI
             for (int i = 0; i < 90; i++) yield return null;
             ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(dir, "00_main_menu.png"));
             yield return null; yield return null;
-            SceneManager.LoadScene("VAB");
+            SceneManager.LoadScene(Karman.Simulation.CommandLine.Value("-karmanScene") ?? "VAB");
         }
 
         void Update() { if (orbitCamera) orbitCamera.yaw += driftDegPerSecond * Time.unscaledDeltaTime; }

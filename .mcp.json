@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "karman-images": {
+      "type": "stdio",
+      "command": "Tools/ImageMCP/.venv/bin/python",
+      "args": ["Tools/ImageMCP/server.py"],
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "KARMAN_IMAGE_BUDGET_USD": "${KARMAN_IMAGE_BUDGET_USD:-0}"
+      }
+    }
+  }
+}

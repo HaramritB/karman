@@ -30,3 +30,7 @@ sysinfo.txt
 /Captures/
 .env
 *.env
+
+# Image MCP local state
+Tools/ImageMCP/.venv/
+Tools/ImageMCP/ledger.jsonl

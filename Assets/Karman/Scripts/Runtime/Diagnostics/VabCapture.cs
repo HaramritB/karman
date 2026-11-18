@@ -43,6 +43,7 @@ namespace Karman.Diagnostics
             vab.Select(vab.Craft.Parts.First(p => p.PartId == "srb.gem").Id);
             yield return Shot(dir, "22_vab_selected_srb", cam, 310, 14, log);
             File.WriteAllText(Path.Combine(dir, "vab_report.txt"), log.ToString());
+            Karman.Vehicles.LaunchRequest.Craft = vab.Craft.DeepClone();
             SceneManager.LoadScene("Flight");
         }
 
