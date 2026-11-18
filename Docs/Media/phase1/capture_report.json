@@ -1,0 +1,20 @@
+{
+  "device": "Mac15,6 / Apple M3 Pro / Metal",
+  "resolution": "1920x1080",
+  "utc": "2026-11-18T06:00:00.2030000Z",
+  "shots": [
+    {"name": "01_vessel_closeup", "avgFrameMs": 3.20, "fps": 312.7, "worstFrameMs": 4.0, "altKm": 280.000, "apKm": 320.000, "peKm": 280.000},
+    {"name": "02_vessel_earth_limb", "avgFrameMs": 2.79, "fps": 358.3, "worstFrameMs": 3.1, "altKm": 280.000, "apKm": 320.000, "peKm": 280.000},
+    {"name": "03_vessel_wide", "avgFrameMs": 4.32, "fps": 231.4, "worstFrameMs": 4.7, "altKm": 280.001, "apKm": 320.000, "peKm": 280.000},
+    {"name": "03b_prograde_burn", "avgFrameMs": 3.25, "fps": 307.7, "worstFrameMs": 3.7, "altKm": 280.001, "apKm": 321.763, "peKm": 280.000},
+    {"name": "04_earth_terminator", "avgFrameMs": 2.86, "fps": 350.0, "worstFrameMs": 3.3, "altKm": 280.002, "apKm": 321.763, "peKm": 280.000},
+    {"name": "05_earth_nightside", "avgFrameMs": 2.58, "fps": 388.1, "worstFrameMs": 23.6, "altKm": 280.002, "apKm": 321.763, "peKm": 280.000},
+    {"name": "06_moon", "avgFrameMs": 1.05, "fps": 949.5, "worstFrameMs": 3.0, "altKm": 280.003, "apKm": 321.763, "peKm": 280.000},
+    {"name": "07_map_earth_system", "avgFrameMs": 1.25, "fps": 799.2, "worstFrameMs": 2.1, "altKm": 280.004, "apKm": 321.763, "peKm": 280.000},
+    {"name": "08_map_earth_moon", "avgFrameMs": 1.13, "fps": 884.9, "worstFrameMs": 2.8, "altKm": 280.005, "apKm": 321.763, "peKm": 280.000},
+    {"name": "09_map_inner_solar", "avgFrameMs": 1.15, "fps": 868.6, "worstFrameMs": 4.4, "altKm": 280.006, "apKm": 321.763, "peKm": 280.000},
+    {"name": "10_map_solar_system", "avgFrameMs": 1.14, "fps": 876.3, "worstFrameMs": 2.0, "altKm": 280.008, "apKm": 321.763, "peKm": 280.000}
+  ],
+  "burn": {"propellantUsedKg": 0.721, "apoapsisGainM": 1763.0, "thrustN": 890},
+  "onRailsPeriodSeconds": 5423.548, "onRailsClosureMetres": 0.020564, "semiMajorAxisDriftMetres": 0.000000
+}
