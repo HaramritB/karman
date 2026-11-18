@@ -107,6 +107,8 @@ namespace Karman.Map
             focusIndex = 1;
         }
 
+        void OnDestroy() => IsActive = false;
+
         Material MaterialFor(CelestialBody b)
         {
             if (b.Id == SolarSystemData.Sun) return sunMaterial;

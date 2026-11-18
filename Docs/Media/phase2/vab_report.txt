@@ -1,0 +1,9 @@
+20_vab_sample: 3.79 ms/frame
+21_vab_boosters: 3.84 ms/frame
+save/load: /Users/amrit/Library/Application Support/com.karman.spaceflight/Craft/Kármán I Heavy.craft.json parts 11->11 dv 12698.552->12698.552
+undo/redo ok: parts 11
+stage 2: dv 1974 m/s, burn 64 s, TWR 2.30, engines 3, jettison False
+stage 1: dv 2644 m/s, burn 56 s, TWR 3.24, engines 1, jettison True
+stage 0: dv 8080 m/s, burn 280 s, TWR 1.13, engines 1, jettison True
+sea-level liftoff TWR 2.08, total dv vac 12699 / ASL 7667
+22_vab_selected_srb: 3.99 ms/frame

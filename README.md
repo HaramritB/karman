@@ -34,7 +34,13 @@ Command-line options for the player:
   -runTests -testPlatform EditMode -testResults results.xml
 ```
 
-## Controls
+## Vehicle Assembly Building
+Click a part in the catalogue, then click a green node (or a tank surface for strap-ons). X cycles radial symmetry,
+R rotates, Shift-click repeats, right-click cancels. Select a part and press Delete to remove it and everything below.
+⌘Z / ⌘⇧Z undo/redo, ⌘S save (`~/Library/Application Support/com.karman.spaceflight/Craft`). Right-drag orbit,
+scroll zoom, middle-drag or Shift+scroll height, F frame. Staging: select a part, ▲/▼ to move its stage, Auto to reset.
+
+## Flight controls
 | Action | Keys |
 |---|---|
 | Pitch / yaw / roll | W S / A D / Q E |

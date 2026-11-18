@@ -117,7 +117,7 @@ namespace Karman.UI
                 "4/5 normal/anti-normal · 6/7 radial out/in",
                 ", / . time warp · / real time · P pause",
                 "Right-drag orbit camera · scroll zoom",
-                "V cycle focus · Backspace vessel · M map",
+                "V cycle focus · Backspace vessel · M map · Esc menu",
             })
             {
                 var l = new Label(line); l.style.color = HudStyle.Dim; l.style.fontSize = 12; l.style.marginTop = 1;
@@ -129,6 +129,11 @@ namespace Karman.UI
         void Update()
         {
             var kb = Keyboard.current;
+            if (kb != null && kb.escapeKey.wasPressedThisFrame)
+            {
+                if (Karman.Map.MapView.IsActive) FindAnyObjectByType<Karman.Map.MapView>().SetActive(false);
+                else UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+            }
             if (kb != null && kb.f1Key.wasPressedThisFrame) help.style.display = help.style.display == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None;
             if (Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + 0.1f;

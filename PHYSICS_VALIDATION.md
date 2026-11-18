@@ -29,6 +29,13 @@ Earth heliocentric velocity within 0.05 km/s. GMST at J2000 matches 280.46061837
 - One full orbital period on rails at high warp: closure **2–21 mm**, semi-major-axis drift 0.
 - 2.2 s full-thrust burn: 0.72 kg propellant (expected ṁ = 0.332 kg/s), apoapsis +1.76 km.
 
+## Vehicles (Phase 2, 31/31 tests)
+- Two-stage kerolox stack: staging-simulation Δv equals Tsiolkovsky per stage (3,036.5 m/s; 10,519.8 vs 10,520.0 m/s).
+- Burn time equals propellant / ṁ (9 × 914 kN at Isp 311 s).
+- Tank capacity reproduces geometry × density at O/F 2.36 (3.7 × 32 m → 322 t).
+- Strap-on boosters: stage ends at booster burnout; core carries over; auto-staging order verified.
+- JSON save/load round trip preserves parts, resources and Δv exactly (also in the player: 12,698.552 m/s before and after).
+
 ## Approximations (documented)
 Point-mass gravity of the dominant body only (no J2, no third-body perturbations yet); fixed ΔT = 69.2 s;
 Moon series truncated (≈ 1.5′); planetary elements valid 1800–2050.

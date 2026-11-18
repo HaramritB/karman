@@ -28,6 +28,8 @@ namespace Karman.EditorTools
         const string MatDir = Root + "/Materials";
         const string SettingsDir = Root + "/Settings";
         public const string ScenePath = Root + "/Scenes/Flight.unity";
+        public const string MenuScenePath = Root + "/Scenes/MainMenu.unity";
+        public const string VabScenePath = Root + "/Scenes/VAB.unity";
 
         [MenuItem("Karman/Rebuild Flight Scene")]
         public static void BuildAll()
@@ -35,8 +37,10 @@ namespace Karman.EditorTools
             AssetDatabase.Refresh();
             ConfigureRenderPipeline();
             ConfigurePlayer();
+            BuildSpaceScene(MenuScenePath, true);
             BuildScene();
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+            VabSceneBuilder.Build(VabScenePath);
+            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(MenuScenePath, true), new EditorBuildSettingsScene(VabScenePath, true), new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             Debug.Log("[KarmanSetup] Flight scene rebuilt");
         }
@@ -48,7 +52,7 @@ namespace Karman.EditorTools
             Directory.CreateDirectory("Builds/macOS");
             var opts = new BuildPlayerOptions
             {
-                scenes = new[] { ScenePath },
+                scenes = new[] { MenuScenePath, VabScenePath, ScenePath },
                 locationPathName = "Builds/macOS/Karman.app",
                 target = BuildTarget.StandaloneOSX,
                 options = BuildOptions.None,
@@ -97,14 +101,14 @@ namespace Karman.EditorTools
 
         // ---------------------------------------------------------------- materials
 
-        static T Load<T>(string path) where T : Object
+        internal static T Load<T>(string path) where T : Object
         {
             var a = AssetDatabase.LoadAssetAtPath<T>(path);
             if (a == null) Debug.LogWarning($"[KarmanSetup] missing asset {path}");
             return a;
         }
 
-        static Material Mat(string name, string shader)
+        internal static Material Mat(string name, string shader)
         {
             Directory.CreateDirectory(MatDir);
             string path = $"{MatDir}/{name}.mat";
@@ -118,9 +122,11 @@ namespace Karman.EditorTools
 
         // ---------------------------------------------------------------- scene
 
-        static void BuildScene()
+        static void BuildScene() => BuildSpaceScene(ScenePath, false);
+
+        static void BuildSpaceScene(string scenePath, bool menu)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
+            Directory.CreateDirectory(Path.GetDirectoryName(scenePath));
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             var earthMat = Mat("Earth", "Karman/Earth");
@@ -232,6 +238,7 @@ namespace Karman.EditorTools
             lighting.planetShineLight = shine;
             lighting.glare = glare.transform;
 
+            if (!menu) {
             // Vessel
             var vesselGo = new GameObject("Vessel (Gemini)");
             var vessel = vesselGo.AddComponent<VesselController>();
@@ -259,6 +266,8 @@ namespace Karman.EditorTools
             pr.sharedMaterial = plumeMat;
             pr.shadowCastingMode = ShadowCastingMode.Off;
             vessel.plume = pr;
+
+            }
 
             // Cameras
             var camGo = new GameObject("Flight Camera");
@@ -291,6 +300,19 @@ namespace Karman.EditorTools
 
             // UI
             var panel = BuildPanelSettings();
+            if (menu)
+            {
+                orbitCam.targetKind = OrbitCamera.TargetKind.Body;
+                orbitCam.targetBodyId = SolarSystemData.Earth;
+                orbitCam.distance = 6.371e6 * 2.6; orbitCam.yaw = 150; orbitCam.pitch = 12;
+                Object.DestroyImmediate(mapCamGo);
+                var menuGo = new GameObject("Main Menu");
+                menuGo.AddComponent<UIDocument>().panelSettings = panel;
+                var mm = menuGo.AddComponent<Karman.UI.MainMenu>();
+                mm.orbitCamera = orbitCam;
+                EditorSceneManager.SaveScene(scene, scenePath);
+                return;
+            }
             var hudGo = new GameObject("Flight HUD");
             var hudDoc = hudGo.AddComponent<UIDocument>();
             hudDoc.panelSettings = panel;
@@ -319,7 +341,7 @@ namespace Karman.EditorTools
             capture.orbitCamera = orbitCam;
             capture.mapView = map;
 
-            EditorSceneManager.SaveScene(scene, ScenePath);
+            EditorSceneManager.SaveScene(scene, scenePath);
         }
 
         static CelestialBodyView MakeBody(Transform parent, string id, BodyShading shading, Material mat, Mesh mesh)
@@ -338,7 +360,7 @@ namespace Karman.EditorTools
             return view;
         }
 
-        static Bounds RendererBounds(GameObject go)
+        internal static Bounds RendererBounds(GameObject go)
         {
             var rs = go.GetComponentsInChildren<Renderer>();
             if (rs.Length == 0) return new Bounds();
@@ -416,7 +438,7 @@ namespace Karman.EditorTools
             return profile;
         }
 
-        static PanelSettings BuildPanelSettings()
+        internal static PanelSettings BuildPanelSettings()
         {
             Directory.CreateDirectory(SettingsDir);
             string themePath = $"{SettingsDir}/KarmanRuntimeTheme.tss";

@@ -6,7 +6,7 @@ namespace Karman.UI
     /// <summary>Shared visual language for KÁRMÁN's runtime UI: dark glass panels, thin rules, tabular numerals.</summary>
     public static class HudStyle
     {
-        public static readonly Color Panel = new Color(0.035f, 0.045f, 0.06f, 0.72f);
+        public static readonly Color Panel = new Color(0.035f, 0.045f, 0.06f, 0.86f);
         public static readonly Color Rule = new Color(1, 1, 1, 0.10f);
         public static readonly Color Text = new Color(0.92f, 0.95f, 0.98f, 1f);
         public static readonly Color Dim = new Color(0.62f, 0.68f, 0.76f, 1f);

@@ -16,9 +16,15 @@
 - [ ] Quadtree terrain LOD for close approach (needed for Phase 3/5)
 - [ ] Navball (Phase 3 flight UI)
 
-## Phase 2 — Rocket construction (next)
-Part definitions (ScriptableObjects), sourced engine/tank/capsule models, VAB scene, nodes, symmetry, staging,
-Δv per stage, craft save/load (versioned JSON).
+## Phase 2 — Rocket construction ✅ first pass (2026-11-18)
+- [x] Data-driven part definitions (13 parts) with real-hardware reference specs; tank capacity from geometry × density
+- [x] Procedural Blender models built to those dimensions (`Tools/Blender/generate_parts.py`)
+- [x] Craft tree model, staging simulation (per-stage Δv vac/ASL, TWR, burn time, CoM/CoT), auto-staging
+- [x] VAB scene: searchable catalogue, node snapping, surface attach with 1–8× radial symmetry, select/delete,
+      undo/redo, staging editor, readouts, CoM/CoT markers, versioned JSON save/load
+- [x] Main menu → VAB / orbit sandbox; Esc returns to menu
+- [ ] Launch the built craft (Phase 3); procedural/configurable tank lengths; part LODs (9-engine cluster is 165k tris)
+- [ ] Part definitions as ScriptableObject/JSON assets for modding (currently `PartLibrary.cs`)
 
 ## Phase 3–6
 Launch & atmospheric flight · maneuver nodes & encounters · lunar landing & return · polish. See the brief.

@@ -6,6 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Karman/Scenes/MainMenu.unity
+    guid: fbd90829cc7b5412699099ebd2438e22
+  - enabled: 1
+    path: Assets/Karman/Scenes/VAB.unity
+    guid: d30abc49f404747f7b763046d943a1ca
+  - enabled: 1
     path: Assets/Karman/Scenes/Flight.unity
     guid: f6c6817828d2f46e4b51027c621f8027
   m_configObjects:
