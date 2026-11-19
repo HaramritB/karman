@@ -43,6 +43,7 @@ namespace Karman.Diagnostics
             while (autopilot.State != LunarAutopilot.Phase.Landed && autopilot.State != LunarAutopilot.Phase.Failed && Time.realtimeSinceStartup - t0 < 1800)
             {
                 double h = v.GroundClearance;
+                if (Time.frameCount % 600 == 0) Debug.Log($"[LunarCapture] state {autopilot.Status} h {h:F0} pe {v.Trajectory.PeriapsisAltitude:F0} warp {sim.Warp} thr {v.Throttle:F2} t {sim.Time:F0}");
                 if (!s1 && h < 9000 && autopilot.State == LunarAutopilot.Phase.Descent) { s1 = true; View(v.Length * 2 + 20, 140, 12); yield return Wait(25); Shot(dir, "52_powered_descent"); log.AppendLine($"Descent at {h:F0} m: {quad?.VisiblePatches} terrain patches visible, {quad?.BuiltPatches} built, {1f / Time.smoothDeltaTime:F0} fps"); }
                 if (!s2 && h < 1500) { s2 = true; View(v.Length * 1.6 + 14, 120, 6); yield return Wait(25); Shot(dir, "53_low_gate"); log.AppendLine($"Low gate {h:F0} m: {quad?.VisiblePatches} patches, {1f / Time.smoothDeltaTime:F0} fps"); }
                 if (!s3 && h < 150) { s3 = true; View(v.Length * 1.4 + 10, 100, 4); yield return Wait(15); Shot(dir, "54_terminal"); }
