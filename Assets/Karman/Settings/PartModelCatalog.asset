@@ -52,3 +52,25 @@ MonoBehaviour:
   - {fileID: 919132149155446097, guid: a38d31c58122f48beb7023179e7a9d37, type: 3}
   - {fileID: 919132149155446097, guid: 9d3c2a2d5971b4644a0a35a5587d1248, type: 3}
   - {fileID: 919132149155446097, guid: 1a555308fee2b45cebcf0fdd130c51ca, type: 3}
+  materialNames:
+  - PaintWhite
+  - PaintGrey
+  - CarbonBlack
+  - Aluminium
+  - Steel
+  - CopperAlloy
+  - NozzleSoot
+  - NiobiumC103
+  - GoldFoil
+  - CorkTPS
+  materials:
+  - {fileID: 2100000, guid: 367053f0d9b034eae8bb08e60b8a231b, type: 2}
+  - {fileID: 2100000, guid: 60df2ee5144674580acbb0878b7bd1e7, type: 2}
+  - {fileID: 2100000, guid: 8f0691ed0b5664013a3c78a2463c66ad, type: 2}
+  - {fileID: 2100000, guid: 07c7073e2872445ad8826c46e05bb466, type: 2}
+  - {fileID: 2100000, guid: 52ccab93518c64b279b7a551ce84cdba, type: 2}
+  - {fileID: 2100000, guid: 0d67e3af528104c918160d29be04954d, type: 2}
+  - {fileID: 2100000, guid: cb6a7e80c6f97428386693778c9542af, type: 2}
+  - {fileID: 2100000, guid: 7ad98ddd44c064510a5adcb0a425a2e6, type: 2}
+  - {fileID: 2100000, guid: f7f9f8936fcfb4161a550abdca26fbd7, type: 2}
+  - {fileID: 2100000, guid: edd22d81059bb4277bb033b47b645624, type: 2}

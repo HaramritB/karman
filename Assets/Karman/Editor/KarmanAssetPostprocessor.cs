@@ -25,6 +25,13 @@ namespace Karman.EditorTools
             if (file == "2k_earth_normal_map") ti.textureType = TextureImporterType.NormalMap;
             if (file.Contains("saturn_ring")) { ti.alphaIsTransparency = true; ti.wrapModeU = TextureWrapMode.Clamp; }
             if (file.Contains("stars")) { ti.mipmapEnabled = false; ti.wrapModeV = TextureWrapMode.Clamp; }
+            if (assetPath.Contains("/PBR/") || assetPath.Contains("/FX/"))
+            {
+                ti.wrapModeU = ti.wrapModeV = TextureWrapMode.Repeat;
+                ti.maxTextureSize = 2048;
+                ti.sRGBTexture = file.EndsWith("_diff");
+                if (file.EndsWith("_nor")) ti.textureType = TextureImporterType.NormalMap;
+            }
         }
 
         void OnPreprocessModel()

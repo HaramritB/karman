@@ -19,6 +19,21 @@ namespace Karman.Diagnostics
             if (string.IsNullOrEmpty(dir)) yield break;
             var cam = FindAnyObjectByType<VabCamera>();
             var log = new System.Text.StringBuilder();
+            if (CommandLine.Has("-karmanShowcase"))
+            {
+                for (int i = 0; i < 40; i++) yield return null;
+                yield return Shot(dir, "60_vab_k1", cam, 215, 6, log);
+                vab.LoadLunarSample();
+                yield return Shot(dir, "61_vab_kv_full", cam, 230, 5, log);
+                cam.Frame(); cam.distance *= 0.32f; cam.height += 16; cam.Snap();
+                for (int i = 0; i < 30; i++) yield return null;
+                ScreenCapture.CaptureScreenshot(Path.Combine(dir, "62_vab_kv_upper.png")); yield return null; yield return null;
+                cam.height -= 34; cam.Snap(); for (int i = 0; i < 30; i++) yield return null;
+                ScreenCapture.CaptureScreenshot(Path.Combine(dir, "63_vab_kv_lower.png")); yield return null; yield return null;
+                File.WriteAllText(Path.Combine(dir, "showcase.txt"), log.ToString());
+                Application.Quit();
+                yield break;
+            }
             for (int i = 0; i < 60; i++) yield return null;
             yield return Shot(dir, "20_vab_sample", cam, 250, 6, log);
 

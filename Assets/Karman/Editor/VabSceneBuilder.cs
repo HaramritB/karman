@@ -44,93 +44,97 @@ namespace Karman.EditorTools
         public static void Build(string path)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            var concrete = Lit("VAB_Concrete", new Color(0.36f, 0.37f, 0.38f), 0.42f);
-            var wall = Lit("VAB_Wall", new Color(0.13f, 0.145f, 0.17f), 0.25f);
-            var steel = Lit("VAB_Steel", new Color(0.55f, 0.56f, 0.58f), 0.55f, 0.85f);
-            var darkSteel = Lit("VAB_DarkSteel", new Color(0.12f, 0.12f, 0.13f), 0.45f, 0.7f);
-            var strip = Lit("VAB_LightStrip", Color.black, 0.5f, 0, new Color(4.5f, 4.8f, 5.2f));
-            var accent = Lit("VAB_Accent", new Color(0.05f, 0.08f, 0.1f), 0.5f, 0, new Color(0.2f, 0.75f, 1.6f));
-            var paint = Lit("VAB_SafetyPaint", new Color(0.85f, 0.55f, 0.08f), 0.4f);
+            PbrMaterials.EnsureSsao();
+            var floor = PbrMaterials.Triplanar("VAB_Floor", "hangar_concrete_floor", new Color(0.82f, 0.82f, 0.8f), 7f, 0, 0.75f, 0.8f);
+            var cladding = PbrMaterials.Triplanar("VAB_Cladding", "box_profile_metal_sheet", new Color(0.62f, 0.64f, 0.67f), 3.2f, 0.6f, 0.8f, 1f, 0.8f, 0.6f);
+            var cladDark = PbrMaterials.Triplanar("VAB_CladdingDark", "box_profile_metal_sheet", new Color(0.18f, 0.19f, 0.21f), 3.2f, 0.6f, 0.8f, 1f, 0.8f, 0.8f);
+            var steel = PbrMaterials.Triplanar("VAB_Steel", "metal_plate_02", new Color(0.55f, 0.57f, 0.6f), 2f, 0.9f, 0.6f, 0.6f, 0.6f, 0.8f);
+            var darkSteel = PbrMaterials.Triplanar("VAB_DarkSteel", "metal_plate_02", new Color(0.13f, 0.135f, 0.145f), 2f, 0.8f, 0.7f, 0.6f, 0.6f, 0.8f);
+            var paint = PbrMaterials.Triplanar("VAB_SafetyPaint", "metal_plate_02", new Color(0.85f, 0.62f, 0.12f), 1.5f, 0.2f, 0.7f, 0.4f, 0.3f, 1f);
+            var panelLight = Lit("VAB_LightPanel", Color.black, 0.5f, 0, new Color(2.2f, 2.3f, 2.4f));
+            var floorLine = Lit("VAB_FloorLine", new Color(0.25f, 0.26f, 0.27f), 0.35f);
 
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.22f, 0.25f, 0.3f);
-            RenderSettings.ambientEquatorColor = new Color(0.12f, 0.13f, 0.15f);
-            RenderSettings.ambientGroundColor = new Color(0.06f, 0.06f, 0.07f);
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Exponential; RenderSettings.fogDensity = 0.0025f;
-            RenderSettings.fogColor = new Color(0.07f, 0.08f, 0.1f);
+            RenderSettings.ambientSkyColor = new Color(0.34f, 0.37f, 0.42f);
+            RenderSettings.ambientEquatorColor = new Color(0.22f, 0.23f, 0.25f);
+            RenderSettings.ambientGroundColor = new Color(0.12f, 0.12f, 0.13f);
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Exponential; RenderSettings.fogDensity = 0.0012f;
+            RenderSettings.fogColor = new Color(0.16f, 0.17f, 0.19f);
 
             var hall = new GameObject("Assembly Hall").transform;
-            const float W = 150, H = 130, D = 150;
-            Box("Floor", new Vector3(0, -0.5f, 0), new Vector3(W, 1, D), concrete, hall);
-            Box("Ceiling", new Vector3(0, H, 0), new Vector3(W, 1, D), wall, hall);
-            Box("Wall N", new Vector3(0, H / 2, D / 2), new Vector3(W, H, 1), wall, hall);
-            Box("Wall S", new Vector3(0, H / 2, -D / 2), new Vector3(W, H, 1), wall, hall);
-            Box("Wall E", new Vector3(W / 2, H / 2, 0), new Vector3(1, H, D), wall, hall);
-            Box("Wall W", new Vector3(-W / 2, H / 2, 0), new Vector3(1, H, D), wall, hall);
-            // Structural columns, light strips, catwalk levels.
-            for (int i = -3; i <= 3; i++)
+            const float W = 240, H = 210, D = 240;
+            Box("Floor", new Vector3(0, -0.5f, 0), new Vector3(W, 1, D), floor, hall);
+            Box("Ceiling", new Vector3(0, H, 0), new Vector3(W, 1, D), cladDark, hall);
+            Box("Wall N", new Vector3(0, H / 2, D / 2), new Vector3(W, H, 1), cladding, hall);
+            Box("Wall E", new Vector3(W / 2, H / 2, 0), new Vector3(1, H, D), cladding, hall);
+            Box("Wall W", new Vector3(-W / 2, H / 2, 0), new Vector3(1, H, D), cladding, hall);
+            // South wall: high-bay door (darker ribbed leaf in a steel frame).
+            Box("Wall S left", new Vector3(-W / 2 + 40, H / 2, -D / 2), new Vector3(80, H, 1), cladding, hall);
+            Box("Wall S right", new Vector3(W / 2 - 40, H / 2, -D / 2), new Vector3(80, H, 1), cladding, hall);
+            Box("Wall S lintel", new Vector3(0, H - 15, -D / 2), new Vector3(80, 30, 1), cladding, hall);
+            Box("High-bay door", new Vector3(0, (H - 30) / 2, -D / 2 - 0.5f), new Vector3(80, H - 30, 1), cladDark, hall);
+            Box("Door frame L", new Vector3(-40.5f, H / 2, -D / 2 + 0.8f), new Vector3(1.6f, H, 1.6f), steel, hall);
+            Box("Door frame R", new Vector3(40.5f, H / 2, -D / 2 + 0.8f), new Vector3(1.6f, H, 1.6f), steel, hall);
+            // Structure: wall columns, roof trusses and a grid of soft ceiling light panels.
+            for (int i = -5; i <= 5; i++)
             {
-                float x = i * 20f;
-                foreach (float z in new[] { D / 2 - 2.5f, -D / 2 + 2.5f })
-                {
-                    Box("Column", new Vector3(x, H / 2, z), new Vector3(2.5f, H, 2.5f), darkSteel, hall);
-                    Box("Strip", new Vector3(x + 10, H / 2, z + (z > 0 ? 1.8f : -1.8f) * -0.2f), new Vector3(0.35f, H * 0.85f, 0.2f), strip, hall);
-                }
-                Box("Truss", new Vector3(x, H - 5, 0), new Vector3(1.6f, 3f, D), darkSteel, hall);
+                float x = i * 22f;
+                foreach (float z in new[] { D / 2 - 1.5f, -D / 2 + 1.5f })
+                    if (Mathf.Abs(x) > 42 || z > 0) Box("Column", new Vector3(x, H / 2, z), new Vector3(1.8f, H, 1.8f), darkSteel, hall);
+                Box("Roof truss", new Vector3(x, H - 4, 0), new Vector3(1.2f, 6f, D), darkSteel, hall);
+                for (int k = -4; k <= 4; k++) Box("Light panel", new Vector3(x + 11, H - 7.5f, k * 24f), new Vector3(8f, 0.3f, 3f), panelLight, hall);
             }
             for (int lvl = 1; lvl <= 4; lvl++)
             {
-                float y = lvl * 24f;
-                Box("Catwalk E", new Vector3(W / 2 - 4, y, 0), new Vector3(6, 0.4f, D - 8), steel, hall);
-                Box("Catwalk W", new Vector3(-W / 2 + 4, y, 0), new Vector3(6, 0.4f, D - 8), steel, hall);
-                Box("Rail E", new Vector3(W / 2 - 7, y + 1.1f, 0), new Vector3(0.1f, 0.1f, D - 8), paint, hall);
-                Box("Rail W", new Vector3(-W / 2 + 7, y + 1.1f, 0), new Vector3(0.1f, 0.1f, D - 8), paint, hall);
+                float y = lvl * 32f;
+                foreach (float sgn in new[] { -1f, 1f })
+                {
+                    Box("Catwalk", new Vector3(sgn * (W / 2 - 4), y, 0), new Vector3(7, 0.35f, D - 10), steel, hall);
+                    Box("Rail", new Vector3(sgn * (W / 2 - 7.4f), y + 1.1f, 0), new Vector3(0.08f, 0.08f, D - 10), steel, hall);
+                    Box("Kick plate", new Vector3(sgn * (W / 2 - 7.4f), y + 0.25f, 0), new Vector3(0.05f, 0.3f, D - 10), darkSteel, hall);
+                }
             }
-            Box("Floor accent ring", new Vector3(0, 0.02f, 0), new Vector3(46, 0.04f, 0.4f), accent, hall);
-            Box("Floor accent ring 2", new Vector3(0, 0.02f, 0), new Vector3(0.4f, 0.04f, 46), accent, hall);
+            // Floor markings: subtle painted assembly grid around the platform.
+            for (int k = -2; k <= 2; k++)
+            {
+                Box("Line X", new Vector3(0, 0.01f, k * 30f), new Vector3(150, 0.02f, 0.25f), floorLine, hall);
+                Box("Line Z", new Vector3(k * 30f, 0.01f, 0), new Vector3(0.25f, 0.02f, 150), floorLine, hall);
+            }
 
             // Mobile launch platform and umbilical tower.
             var mlp = new GameObject("Mobile Launch Platform").transform;
-            Box("Deck", new Vector3(0, 3, 0), new Vector3(32, 6, 26), darkSteel, mlp);
-            Box("Deck plate", new Vector3(0, 6.05f, 0), new Vector3(30, 0.1f, 24), steel, mlp);
-            Box("Exhaust opening", new Vector3(0, 6.08f, 0), new Vector3(9, 0.1f, 9), Lit("VAB_Hole", Color.black, 0.1f), mlp);
-            for (int k = 0; k < 4; k++)
+            Box("Deck", new Vector3(0, 3, 0), new Vector3(40, 6, 34), darkSteel, mlp);
+            Box("Deck plate", new Vector3(0, 6.05f, 0), new Vector3(38, 0.1f, 32), steel, mlp);
+            Box("Exhaust opening", new Vector3(0, 6.08f, 0), new Vector3(10, 0.1f, 10), Lit("VAB_Hole", new Color(0.01f, 0.01f, 0.01f), 0.1f), mlp);
+            for (int k = 0; k < 8; k++)
             {
-                float a = k * Mathf.PI / 2 + Mathf.PI / 4;
-                Box("Hold-down", new Vector3(Mathf.Cos(a) * 3.6f, 6.6f, Mathf.Sin(a) * 3.6f), new Vector3(0.8f, 1.1f, 0.8f), paint, mlp);
+                float a = k * Mathf.PI / 4 + Mathf.PI / 8;
+                Box("Hold-down", new Vector3(Mathf.Cos(a) * 4.6f, 6.6f, Mathf.Sin(a) * 4.6f), new Vector3(0.7f, 1.1f, 0.7f), paint, mlp);
             }
             var tower = new GameObject("Umbilical Tower").transform;
-            tower.SetParent(mlp, false); tower.localPosition = new Vector3(-11, 6, 0);
-            const float TH = 92, TW = 6;
-            foreach (var c in new[] { new Vector2(-1, -1), new Vector2(1, -1), new Vector2(-1, 1), new Vector2(1, 1) })
-                Box("Leg", new Vector3(c.x * TW / 2, TH / 2, c.y * TW / 2), new Vector3(0.6f, TH, 0.6f), paint, tower);
-            for (float y = 4; y < TH; y += 4)
-            {
-                Box("Brace X", new Vector3(0, y, TW / 2), new Vector3(TW, 0.35f, 0.35f), paint, tower);
-                Box("Brace X", new Vector3(0, y, -TW / 2), new Vector3(TW, 0.35f, 0.35f), paint, tower);
-                Box("Brace Z", new Vector3(TW / 2, y, 0), new Vector3(0.35f, 0.35f, TW), paint, tower);
-                Box("Brace Z", new Vector3(-TW / 2, y, 0), new Vector3(0.35f, 0.35f, TW), paint, tower);
-                if (((int)y) % 16 == 0) Box("Arm", new Vector3(TW / 2 + 2.2f, y, 0), new Vector3(4.4f, 0.6f, 1.6f), steel, tower);
-            }
+            tower.SetParent(mlp, false); tower.localPosition = new Vector3(-16, 6, 0);
+            LaunchSiteBuilder.Truss(tower, 7f, 118f, 6f, steel);
+            for (float y = 18; y < 118; y += 18) Box("Service arm", new Vector3(7f / 2 + 2.6f, y, 0), new Vector3(5.2f, 0.8f, 1.8f), steel, tower);
 
-            // Lighting: ceiling floods aimed at the vehicle plus a cool fill.
+            // Lighting: eight ceiling floods aimed at the vehicle plus a cool fill.
             var lights = new GameObject("Lights").transform;
-            for (int k = 0; k < 6; k++)
+            for (int k = 0; k < 8; k++)
             {
-                float a = k * Mathf.PI * 2 / 6 + 0.3f;
+                float a = k * Mathf.PI * 2 / 8 + 0.2f;
                 var go = new GameObject("Flood " + k);
                 go.transform.SetParent(lights, false);
-                go.transform.position = new Vector3(Mathf.Cos(a) * 55, H - 12, Mathf.Sin(a) * 55);
-                go.transform.LookAt(new Vector3(0, 30, 0));
+                go.transform.position = new Vector3(Mathf.Cos(a) * 80, H - 14, Mathf.Sin(a) * 80);
+                go.transform.LookAt(new Vector3(0, 45, 0));
                 var l = go.AddComponent<Light>();
-                l.type = LightType.Spot; l.spotAngle = 48; l.innerSpotAngle = 25; l.range = 220; l.intensity = 9000;
-                l.color = k % 2 == 0 ? new Color(1f, 0.96f, 0.9f) : new Color(0.9f, 0.95f, 1f);
+                l.type = LightType.Spot; l.spotAngle = 55; l.innerSpotAngle = 30; l.range = 320; l.intensity = 16000;
+                l.color = k % 2 == 0 ? new Color(1f, 0.97f, 0.92f) : new Color(0.92f, 0.96f, 1f);
                 l.shadows = k < 2 ? LightShadows.Soft : LightShadows.None;
             }
             var fill = new GameObject("Fill").AddComponent<Light>();
-            fill.type = LightType.Directional; fill.intensity = 0.35f; fill.color = new Color(0.7f, 0.8f, 1f);
-            fill.transform.rotation = Quaternion.Euler(50, -30, 0);
+            fill.type = LightType.Directional; fill.intensity = 0.5f; fill.color = new Color(0.75f, 0.82f, 1f);
+            fill.transform.rotation = Quaternion.Euler(55, -30, 0);
+            fill.shadows = LightShadows.Soft;
 
             // Craft root and VAB tools.
             var craftRoot = new GameObject("Craft").transform;
@@ -149,6 +153,7 @@ namespace Karman.EditorTools
             var ghostBad = KarmanSetup.Mat("VAB_GhostBad", "Karman/Line"); ghostBad.SetColor("_Color", new Color(1f, 0.3f, 0.25f, 0.4f));
             var sel = KarmanSetup.Mat("VAB_Selection", "Karman/Line"); sel.SetColor("_Color", new Color(0.36f, 0.78f, 1f, 0.28f));
             vab.ghostOk = ghostOk; vab.ghostBad = ghostBad; vab.selectionMaterial = sel;
+            vab.interstageMaterial = PbrMaterials.Triplanar("Interstage", "metal_plate_02", new Color(0.9f, 0.9f, 0.89f), 2.4f, 0.05f, 0.6f, 0.35f, 0.12f, 1, true);
             vab.comMarker = Marker("Centre of mass", new Color(1f, 0.85f, 0.2f, 0.95f), craftRoot);
             vab.cotMarker = Marker("Centre of thrust", new Color(1f, 0.3f, 0.9f, 0.95f), craftRoot);
 
@@ -182,6 +187,8 @@ namespace Karman.EditorTools
             for (int i = 0; i < ids.Length; i++)
                 prefabs[i] = ids[i] == "gemini" ? GeminiPrefab() : ids[i].StartsWith("lm_") ? KarmanSetup.Load<GameObject>($"Assets/Karman/Art/Models/Lander/{ids[i]}.fbx") : KarmanSetup.Load<GameObject>($"{Parts}/{ids[i]}.fbx");
             cat.modelIds = ids; cat.prefabs = prefabs;
+            var (names, mats) = PbrMaterials.VehicleSet();
+            cat.materialNames = names; cat.materials = mats;
             EditorUtility.SetDirty(cat);
             AssetDatabase.SaveAssets();
             return catalogCache = cat;

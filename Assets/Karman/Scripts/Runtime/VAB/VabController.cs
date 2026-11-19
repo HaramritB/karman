@@ -22,7 +22,7 @@ namespace Karman.VAB
         public Camera cam;
         public Transform craftRoot;
         public Karman.Vehicles.PartModelCatalog catalog;
-        public Material ghostOk, ghostBad, selectionMaterial;
+        public Material ghostOk, ghostBad, selectionMaterial, interstageMaterial;
         public Transform comMarker, cotMarker;
         public float snapPixels = 48f;
         public Vector3 platformTop = new Vector3(0, 0, 0);
@@ -430,6 +430,7 @@ namespace Karman.VAB
                 go.transform.localRotation = ToQ(p.Rotation);
                 visuals[p.Id] = go;
             }
+            Karman.Vehicles.InterstageFairings.Build(Craft, Lookup, visuals, interstageMaterial);
             // Stand the craft on the launch platform: lowest point at platformTop.
             float minY = 0;
             bool anyPart = false;

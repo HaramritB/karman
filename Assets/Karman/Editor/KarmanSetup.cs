@@ -39,8 +39,8 @@ namespace Karman.EditorTools
             ConfigurePlayer();
             VabSceneBuilder.Catalog();
             BuildSpaceScene(MenuScenePath, true);
-            BuildScene();
             VabSceneBuilder.Build(VabScenePath);
+            BuildScene();
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(MenuScenePath, true), new EditorBuildSettingsScene(VabScenePath, true), new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             Debug.Log("[KarmanSetup] Flight scene rebuilt");
@@ -98,6 +98,7 @@ namespace Karman.EditorTools
             PlayerSettings.runInBackground = true;
             PlayerSettings.colorSpace = ColorSpace.Linear;
             PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneOSX, new[] { GraphicsDeviceType.Metal });
+
         }
 
         // ---------------------------------------------------------------- materials
@@ -202,6 +203,10 @@ namespace Karman.EditorTools
             loader.moonDem = Load<TextAsset>($"{Root}/Data/Moon/moon_dem16.bytes");
             var moonTerrainMat = Mat("MoonTerrain", "Karman/MoonTerrain");
             moonTerrainMat.SetTexture("_ColorTex", Load<Texture2D>($"{Tex}/Moon/moon_color_4k.png"));
+            moonTerrainMat.SetTexture("_NearDiff", PbrMaterials.Tex("gravelly_sand", "diff"));
+            moonTerrainMat.SetTexture("_NearNor", PbrMaterials.Tex("gravelly_sand", "nor"));
+            moonTerrainMat.SetTexture("_MidDiff", PbrMaterials.Tex("aerial_rocks_02", "diff"));
+            moonTerrainMat.SetTexture("_MidNor", PbrMaterials.Tex("aerial_rocks_02", "nor"));
             var quadtree = moonView.gameObject.AddComponent<TerrainQuadtree>();
             quadtree.bodyView = moonView;
             quadtree.material = moonTerrainMat;
@@ -256,6 +261,7 @@ namespace Karman.EditorTools
             vesselView.plumeMaterial = plumeMat;
             vesselView.plumeMesh = SaveMesh(PlumeMesh(), "PlumeCone");
             vesselView.canopyMaterial = Mat("ParachuteCanopy", "Karman/Line");
+            vesselView.interstageMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Karman/Materials/Interstage.mat");
             var plasmaMat = Mat("EntryPlasma", "Karman/Plume");
             plasmaMat.SetColor("_Color", new Color(1f, 0.55f, 0.35f)); plasmaMat.SetColor("_EdgeColor", new Color(1f, 0.25f, 0.45f)); plasmaMat.SetFloat("_Intensity", 2.5f);
             vesselView.plasmaMaterial = plasmaMat;

@@ -8,7 +8,7 @@ namespace Karman.VAB
     {
         public VabController vab;
         public float yaw = 35, pitch = 8, distance = 70, height = 25;
-        public float minDistance = 8, maxDistance = 220;
+        public float minDistance = 8, maxDistance = 175;
         float sYaw, sPitch, sDist, sHeight;
 
         void Start() { Frame(); Snap(); }
@@ -19,7 +19,8 @@ namespace Karman.VAB
         {
             var b = vab.CraftBounds();
             height = b.center.y;
-            distance = Mathf.Clamp(Mathf.Max(b.size.y, b.size.x * 2) * 1.25f, minDistance, maxDistance);
+            // Fit the craft's height in the 45° field of view, staying inside the hall.
+            distance = Mathf.Clamp(Mathf.Max(b.size.y * 1.15f, b.size.x * 2.2f) + 6, minDistance, maxDistance);
         }
 
         void Update()
@@ -41,7 +42,7 @@ namespace Karman.VAB
             }
             if (kb != null && kb.fKey.wasPressedThisFrame) Frame();
             distance = Mathf.Clamp(distance, minDistance, maxDistance);
-            height = Mathf.Clamp(height, 1, 120);
+            height = Mathf.Clamp(height, 2, 185);
         }
 
         void LateUpdate()

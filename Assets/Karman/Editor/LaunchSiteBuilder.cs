@@ -43,6 +43,31 @@ namespace Karman.EditorTools
             return go;
         }
 
+        /// <summary>Square lattice tower: corner legs, ring members every segment and X-bracing on all four faces.</summary>
+        public static void Truss(Transform parent, float width, float height, float segment, Material m)
+        {
+            float hw = width / 2;
+            foreach (var c in new[] { new Vector2(-1, -1), new Vector2(1, -1), new Vector2(-1, 1), new Vector2(1, 1) })
+                Box("Leg", new Vector3(c.x * hw, height / 2, c.y * hw), new Vector3(0.7f, height, 0.7f), m, parent);
+            float diag = Mathf.Sqrt(width * width + segment * segment);
+            float ang = Mathf.Atan2(segment, width) * Mathf.Rad2Deg;
+            for (float y = 0; y < height - 0.1f; y += segment)
+            {
+                float yc = y + segment / 2;
+                Box("Ring", new Vector3(0, y + segment, hw), new Vector3(width, 0.32f, 0.32f), m, parent);
+                Box("Ring", new Vector3(0, y + segment, -hw), new Vector3(width, 0.32f, 0.32f), m, parent);
+                Box("Ring", new Vector3(hw, y + segment, 0), new Vector3(0.32f, 0.32f, width), m, parent);
+                Box("Ring", new Vector3(-hw, y + segment, 0), new Vector3(0.32f, 0.32f, width), m, parent);
+                foreach (float sgn in new[] { 1f, -1f })
+                {
+                    Box("Brace", new Vector3(0, yc, hw), new Vector3(diag, 0.18f, 0.18f), m, parent, new Vector3(0, 0, ang * sgn));
+                    Box("Brace", new Vector3(0, yc, -hw), new Vector3(diag, 0.18f, 0.18f), m, parent, new Vector3(0, 0, ang * sgn));
+                    Box("Brace", new Vector3(hw, yc, 0), new Vector3(0.18f, 0.18f, diag), m, parent, new Vector3(ang * sgn, 0, 0));
+                    Box("Brace", new Vector3(-hw, yc, 0), new Vector3(0.18f, 0.18f, diag), m, parent, new Vector3(ang * sgn, 0, 0));
+                }
+            }
+        }
+
         public static GameObject Build(Material earthMat)
         {
             var site = new GameObject("Launch Site (LC-39A)");
@@ -53,6 +78,12 @@ namespace Karman.EditorTools
             groundMat.SetTexture("_DayTex", earthMat.GetTexture("_DayTex"));
             groundMat.SetTexture("_NightTex", earthMat.GetTexture("_NightTex"));
             groundMat.SetTexture("_SpecTex", earthMat.GetTexture("_SpecTex"));
+            groundMat.SetTexture("_GrassDiff", PbrMaterials.Tex("sparse_grass", "diff"));
+            groundMat.SetTexture("_GrassNor", PbrMaterials.Tex("sparse_grass", "nor"));
+            groundMat.SetTexture("_GrassArm", PbrMaterials.Tex("sparse_grass", "arm"));
+            groundMat.SetTexture("_MacroDiff", PbrMaterials.Tex("aerial_grass_rock", "diff"));
+            groundMat.SetTexture("_SandDiff", PbrMaterials.Tex("aerial_beach_01", "diff"));
+            groundMat.SetTexture("_SandNor", PbrMaterials.Tex("aerial_beach_01", "nor"));
             var ground = new GameObject("Ground Patch");
             ground.transform.SetParent(site.transform, false);
             ground.AddComponent<MeshFilter>();
@@ -60,13 +91,14 @@ namespace Karman.EditorTools
             gr.sharedMaterial = groundMat; gr.shadowCastingMode = ShadowCastingMode.Off; gr.receiveShadows = true;
             view.ground = gr;
 
-            var concrete = Lit("Site_Concrete", new Color(0.62f, 0.61f, 0.58f), 0.25f);
-            var darkConcrete = Lit("Site_ConcreteDark", new Color(0.18f, 0.18f, 0.18f), 0.2f);
-            var gravel = Lit("Site_Crawlerway", new Color(0.55f, 0.52f, 0.47f), 0.1f);
-            var steelRed = Lit("Site_TowerRed", new Color(0.55f, 0.12f, 0.08f), 0.35f, 0.3f);
-            var steelGrey = Lit("Site_SteelGrey", new Color(0.45f, 0.46f, 0.48f), 0.45f, 0.7f);
-            var white = Lit("Site_PaintWhite", new Color(0.85f, 0.86f, 0.87f), 0.4f);
-            var black = Lit("Site_Black", new Color(0.03f, 0.03f, 0.03f), 0.05f);
+            var concrete = PbrMaterials.Triplanar("Site_Concrete", "concrete_floor_worn_001", new Color(0.92f, 0.91f, 0.88f), 8f, 0, 0.9f, 0.9f);
+            var darkConcrete = PbrMaterials.Triplanar("Site_ConcreteDark", "concrete_floor_worn_001", new Color(0.55f, 0.55f, 0.53f), 8f, 0, 0.95f, 0.9f);
+            var gravel = PbrMaterials.Triplanar("Site_Crawlerway", "gravel_road", new Color(0.95f, 0.92f, 0.86f), 5f, 0, 1f, 1f);
+            var steelRed = PbrMaterials.Triplanar("Site_TowerSteel", "metal_plate_02", new Color(0.62f, 0.64f, 0.67f), 2f, 0.85f, 0.6f, 0.6f, 0.5f, 0.8f);
+            var steelGrey = PbrMaterials.Triplanar("Site_SteelGrey", "metal_plate_02", new Color(0.42f, 0.43f, 0.45f), 2f, 0.9f, 0.6f, 0.6f, 0.5f, 0.8f);
+            var white = PbrMaterials.Triplanar("Site_PaintWhite", "metal_plate_02", new Color(0.9f, 0.9f, 0.88f), 3f, 0.1f, 0.6f, 0.4f, 0.2f, 1f);
+            var cladding = PbrMaterials.Triplanar("Site_Cladding", "box_profile_metal_sheet", new Color(0.86f, 0.87f, 0.88f), 3.2f, 0.5f, 0.8f, 1f, 0.6f, 0.7f);
+            var black = Lit("Site_Black", new Color(0.02f, 0.02f, 0.02f), 0.05f);
             var root = new GameObject("Pad").transform;
             root.SetParent(site.transform, false);
 
@@ -75,6 +107,17 @@ namespace Karman.EditorTools
             Box("Pad apron", new Vector3(0, 0.05f, 0), new Vector3(200, 0.1f, 190), darkConcrete, root);
             Box("Ramp", new Vector3(0, 7.5f, -95), new Vector3(30, 15, 85), concrete, root, new Vector3(-10f, 0, 0));
             Box("Flame trench", new Vector3(0, 15.02f, 22), new Vector3(12, 0.05f, 70), black, root);
+            Box("Trench wall E", new Vector3(6.4f, 15.3f, 22), new Vector3(0.8f, 0.6f, 70), darkConcrete, root);
+            Box("Trench wall W", new Vector3(-6.4f, 15.3f, 22), new Vector3(0.8f, 0.6f, 70), darkConcrete, root);
+            // Lightning protection: three masts with catenary wires around the pad.
+            var mastPos = new[] { new Vector3(-45, 0, 40), new Vector3(45, 0, 40), new Vector3(0, 0, -55) };
+            foreach (var mp in mastPos) Cyl("Lightning mast", mp + Vector3.up * 70, 0.9f, 140, steelGrey, root);
+            for (int k = 0; k < 3; k++)
+            {
+                Vector3 a0 = mastPos[k] + Vector3.up * 140, b0 = mastPos[(k + 1) % 3] + Vector3.up * 140;
+                var wire = Cyl("Catenary", (a0 + b0) / 2 - Vector3.up * 6, 0.06f, Vector3.Distance(a0, b0), steelGrey, root);
+                wire.transform.up = (b0 - a0).normalized;
+            }
             Box("Exhaust opening", new Vector3(0, 15.03f, 0), new Vector3(11, 0.05f, 11), black, root);
             for (int k = 0; k < 4; k++)
             {
@@ -86,16 +129,8 @@ namespace Karman.EditorTools
             var fss = new GameObject("Fixed Service Structure").transform;
             fss.SetParent(root, false); fss.localPosition = new Vector3(-17, 15, 0);
             const float H = 88, W = 10;
-            foreach (var c in new[] { new Vector2(-1, -1), new Vector2(1, -1), new Vector2(-1, 1), new Vector2(1, 1) })
-                Box("Leg", new Vector3(c.x * W / 2, H / 2, c.y * W / 2), new Vector3(0.9f, H, 0.9f), steelRed, fss);
-            for (float y = 6; y < H; y += 6)
-            {
-                Box("Floor", new Vector3(0, y, 0), new Vector3(W, 0.4f, W), steelGrey, fss);
-                Box("Brace", new Vector3(0, y - 3, W / 2), new Vector3(W * 1.1f, 0.35f, 0.35f), steelRed, fss, new Vector3(0, 0, 32));
-                Box("Brace", new Vector3(0, y - 3, -W / 2), new Vector3(W * 1.1f, 0.35f, 0.35f), steelRed, fss, new Vector3(0, 0, -32));
-                Box("Brace", new Vector3(W / 2, y - 3, 0), new Vector3(0.35f, 0.35f, W * 1.1f), steelRed, fss, new Vector3(32, 0, 0));
-                Box("Brace", new Vector3(-W / 2, y - 3, 0), new Vector3(0.35f, 0.35f, W * 1.1f), steelRed, fss, new Vector3(-32, 0, 0));
-            }
+            Truss(fss, W, H, 8f, steelRed);
+            for (float y = 8; y < H; y += 8) Box("Floor", new Vector3(0, y, 0), new Vector3(W - 0.6f, 0.25f, W - 0.6f), steelGrey, fss);
             Box("Crew access arm", new Vector3(W / 2 + 4.5f, 60, 0), new Vector3(9, 2.6f, 2.4f), white, fss);
             Box("Umbilical arm", new Vector3(W / 2 + 4f, 36, 0), new Vector3(8, 1.2f, 1.4f), steelGrey, fss);
             Cyl("Lightning mast", new Vector3(0, H + 18, 0), 0.4f, 36, steelGrey, fss);
@@ -113,8 +148,8 @@ namespace Karman.EditorTools
 
             // Crawlerway to the south and a processing hangar.
             Box("Crawlerway", new Vector3(0, 0.08f, -1300), new Vector3(40, 0.12f, 2400), gravel, root);
-            Box("Crawlerway median", new Vector3(0, 0.1f, -1300), new Vector3(12, 0.12f, 2400), Lit("Site_Grass", new Color(0.22f, 0.27f, 0.14f), 0.05f), root);
-            Box("Processing hangar", new Vector3(140, 18, -320), new Vector3(110, 36, 60), white, root);
+            Box("Crawlerway median", new Vector3(0, 0.1f, -1300), new Vector3(12, 0.12f, 2400), PbrMaterials.Triplanar("Site_Median", "sparse_grass", new Color(0.8f, 0.85f, 0.7f), 3f), root);
+            Box("Processing hangar", new Vector3(140, 18, -320), new Vector3(110, 36, 60), cladding, root);
             Box("Hangar door", new Vector3(140, 14, -289.9f), new Vector3(70, 28, 0.3f), steelGrey, root);
 
             // Night floodlights on four masts around the pad.

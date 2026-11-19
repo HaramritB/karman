@@ -10,6 +10,9 @@ namespace Karman.Vehicles
     {
         public string[] modelIds = Array.Empty<string>();
         public GameObject[] prefabs = Array.Empty<GameObject>();
+        [Tooltip("Imported material names replaced by curated PBR materials.")]
+        public string[] materialNames = Array.Empty<string>();
+        public Material[] materials = Array.Empty<Material>();
 
         public GameObject Create(PartDefinition def, Transform parent)
         {
@@ -18,6 +21,21 @@ namespace Karman.Vehicles
             GameObject go = i >= 0 && prefabs[i] ? Instantiate(prefabs[i], parent) : GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             go.transform.SetParent(parent, false);
             go.name = def.Title;
+            if (materialNames.Length > 0)
+                foreach (var r in go.GetComponentsInChildren<Renderer>())
+                {
+                    var mats = r.sharedMaterials;
+                    bool changed = false;
+                    for (int k = 0; k < mats.Length; k++)
+                    {
+                        if (mats[k] == null) continue;
+                        string n = mats[k].name.Replace(" (Instance)", "");
+                        int idx = Array.FindIndex(materialNames, m => n == m || n.StartsWith(m + "."));
+                        if (idx >= 0) { mats[k] = materials[idx]; changed = true; }
+                    }
+                    if (changed) r.sharedMaterials = mats;
+                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                }
             return go;
         }
     }

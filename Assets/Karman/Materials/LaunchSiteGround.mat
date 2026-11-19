@@ -27,8 +27,32 @@ Material:
         m_Texture: {fileID: 2800000, guid: 5184bb597133a47aa83a3ad09545510d, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _GrassArm:
+        m_Texture: {fileID: 2800000, guid: a0d47a861cee44da297f6f66c68516fb, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _GrassDiff:
+        m_Texture: {fileID: 2800000, guid: 8ba69579737a84f81bb34d5468d852ec, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _GrassNor:
+        m_Texture: {fileID: 2800000, guid: 0638f4a5f46b6470d9f3337a41b8dc40, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MacroDiff:
+        m_Texture: {fileID: 2800000, guid: 997add4d5b93a4a309616c07619db73d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _NightTex:
         m_Texture: {fileID: 2800000, guid: 4da02983c61b145b5baffcfca7b59c58, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SandDiff:
+        m_Texture: {fileID: 2800000, guid: 2c1cc37c99a764a84a2cdc7d86ba4de2, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SandNor:
+        m_Texture: {fileID: 2800000, guid: 303e66649939f487991b8482d798b18a, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SpecTex:
@@ -41,6 +65,7 @@ Material:
     - _NightIntensity: 2.5
     - _SunIntensity: 4
     m_Colors:
+    - _SkyColor: {r: 0.31999996, g: 0.5, b: 0.78, a: 1}
     - _SunDir: {r: 0, g: 1, b: 0, a: 0}
     - _ZenithOpticalDepth: {r: 0.046, g: 0.108, b: 0.265, a: 0}
   m_BuildTextureStacks: []

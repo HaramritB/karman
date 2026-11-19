@@ -21,6 +21,7 @@ namespace Karman.Flight
         public Material plumeMaterial;
         public Mesh plumeMesh;
         public Material canopyMaterial;
+        public Material interstageMaterial;
         public Material plasmaMaterial;
         Transform canopy, plasma;
         MaterialPropertyBlock plasmaBlock;
@@ -64,6 +65,7 @@ namespace Karman.Flight
                     plumes[p.Id] = r;
                 }
             }
+            Karman.Vehicles.InterstageFairings.Build(v.Vehicle.Craft, v.Lookup, parts, interstageMaterial);
             UpdatePivot();
             if (v.Vehicle.Parachute != null && canopyMaterial != null) BuildCanopy();
             if (plasmaMaterial != null)
