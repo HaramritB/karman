@@ -65,13 +65,21 @@
 - [x] Settings: Low/Medium/High/Ultra presets (render scale, MSAA, shadow range, terrain split, atmosphere samples),
       1440p, volume (persisted)
 - [x] Earthshine on lunar terrain from Earth's phase
-- [ ] Terrain/vessel shadows on the Moon, Earth ground haze, sourced pad/VAB models, more parts, part fuel sliders in
+- [x] Visual overhaul (2026-11-19): PBR triplanar materials on all parts and structures (Poly Haven CC0 scans,
+      anti-tiling, weathering, slab joints); fixed parts rendering black in the player (compressed normals)
+- [x] Interstage fairings: engines stacked above another part are enclosed, so no floating engine bells
+- [x] New LC-39A pad: grassed 15 m mound, slab-jointed deck, flame trench with deflector, launch mount, deluge pipes,
+      LOX/LH2 spheres, perimeter road; ground with anti-tiled scrub/lawn palette, patches and aerial haze
+- [x] Sky ambient + realtime reflection probe near the surface (oriented to the local vertical)
+- [x] Redesigned UI (Inter typeface): minimal flight HUD (Tab telemetry, F1 controls), compact VAB with hover details,
+      templates menu, collapsible staging; bright VAB hall with reflections; restyled main menu
+- [x] Tank models redone in Blender (flanges, raceway brackets, access panels, vent valve); orange spray-foam hydrogen tanks
+- [ ] Terrain/vessel shadows on the Moon, sourced detail models (crawler, VAB exterior), more parts, part fuel sliders in
       the VAB, rendezvous with a second vessel, aerodynamic torques, profiler pass
 
 ## Known issues
 - Rigid vehicles: no structural loads or aerodynamic torques; attitude authority is idealised (pod torque + gimbal).
-- Ground near the pad is washed out by atmospheric haze at low altitude, and its procedural detail is coarse.
-- Pad structures are simple box geometry; replace with sourced/modelled assets.
+- Pad towers and masts are still box/cylinder geometry (lattice detail only on the service structure).
 - Earth surface from LEO is slightly hazy; atmosphere is single-scattering only.
 - Sky panorama longitude direction (mirror) not verified against star positions.
 - Moon libration ignored (prime meridian points at Earth).
