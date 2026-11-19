@@ -74,7 +74,7 @@ namespace Karman.VAB
             symLabel = new Label(); symLabel.style.color = HudStyle.Accent; symLabel.style.marginLeft = 6; symLabel.style.marginRight = 2;
             topBar.Add(Btn("Symmetry", vab.CycleSymmetry)); topBar.Add(symLabel);
             var spacer = new VisualElement(); spacer.style.flexGrow = 1; topBar.Add(spacer);
-            topBar.Add(Btn("Orbit sandbox", () => SceneManager.LoadScene("Flight")));
+            topBar.Add(Btn("Lunar sample", () => vab.LoadLunarSample()));
             var launch = Btn("LAUNCH ▸", vab.Launch);
             launch.style.backgroundColor = new Color(0.36f, 0.78f, 1f, 0.85f); launch.style.color = new Color(0.02f, 0.05f, 0.08f);
             launch.style.unityFontStyleAndWeight = FontStyle.Bold;

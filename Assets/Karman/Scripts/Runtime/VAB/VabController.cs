@@ -89,6 +89,14 @@ namespace Karman.VAB
             Rebuild();
         }
 
+        public void LoadLunarSample()
+        {
+            Snapshot();
+            Craft = SampleCrafts.LunarLander(Lookup, true);
+            Selected = -1; ManualStaging = false;
+            Rebuild();
+        }
+
         /// <summary>Recompute stack-node poses from the tree (used for generated crafts).</summary>
         void LayoutStack(Craft c)
         {
@@ -428,7 +436,7 @@ namespace Karman.VAB
             foreach (var p in Craft.Parts)
             {
                 var d = Lookup(p.PartId);
-                float bottom = p.Position[1] - Mathf.Max(d.Height, d.Diameter) / 2;
+                float bottom = p.Position[1] - d.Height / 2;
                 minY = anyPart ? Mathf.Min(minY, bottom) : bottom; anyPart = true;
             }
             craftRoot.position = platformTop - Vector3.up * minY;

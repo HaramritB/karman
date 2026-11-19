@@ -14,10 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Karman.Runtime::Karman.Vehicles.PartModelCatalog
   modelIds:
   - gemini
+  - lm_descent
+  - lm_ascent
   - tank_8
   - tank_10
   - tank_16
   - tank_32
+  - tank_s15
+  - tank_s30
   - engine_booster
   - engine_cluster9
   - engine_vacuum
@@ -29,10 +33,14 @@ MonoBehaviour:
   - nose
   prefabs:
   - {fileID: 3644780667300075060, guid: 27caebe7bb82f456ebc9327b1d485fcc, type: 3}
+  - {fileID: 919132149155446097, guid: 5dc52c66d865146378fa9e6cebf21409, type: 3}
+  - {fileID: 919132149155446097, guid: a0b3d5bbdbb644796b24023ff1ddf9ca, type: 3}
   - {fileID: 919132149155446097, guid: 506851d83cead4f88add6721a29f52d2, type: 3}
   - {fileID: 919132149155446097, guid: 518774d32eb9646049b649388519faba, type: 3}
   - {fileID: 919132149155446097, guid: d833a69c884564cc8a9fd61671cc6ce4, type: 3}
   - {fileID: 919132149155446097, guid: cb3e3df4562884feeba5d7ba4a726de0, type: 3}
+  - {fileID: 919132149155446097, guid: 054502dd907c0471ab35e78555e4d0ff, type: 3}
+  - {fileID: 919132149155446097, guid: 1d1572826d3014f1199e4833daf8f851, type: 3}
   - {fileID: 919132149155446097, guid: 3d38b15c9b7114459b19b1aff8bdd606, type: 3}
   - {fileID: 919132149155446097, guid: 8e0dc113896bd42b6a1a2fa77c85963b, type: 3}
   - {fileID: 919132149155446097, guid: cbdf7b26ec3744442882f0b667ecc81d, type: 3}

@@ -50,6 +50,12 @@ Open the map (M). Click the blue trajectory to place a node, then use the planni
 Δv and shift its time (or use Node at Ap/Pe, Circularise, Plan Moon transfer). The orange line is the trajectory after the
 burn; encounters and closest approaches are labelled. EXECUTE (or N in flight) warps to the burn and flies it.
 
+## Going to the Moon
+Main menu ▸ **Lunar Landing** starts in a 100 km lunar orbit: press **G** to deorbit and land on real LOLA terrain, then
+**G** again to lift off back to orbit; open the map and press **Return to Earth** to plan the trans-Earth burn, EXECUTE it,
+and arm the parachute with **C** before entry. **Lunar Mission** starts the full stack in a low Earth orbit in the Moon's
+plane: map ▸ **Plan Moon transfer** ▸ EXECUTE, then circularise at the Moon and land.
+
 ## Image generation (optional)
 `Tools/ImageMCP/server.py` is a local MCP server (`karman-images`, registered in `.mcp.json`) for OpenAI and Gemini image
 models. Keys come from `OPENAI_API_KEY` / `GEMINI_API_KEY`. Generation is blocked unless `KARMAN_IMAGE_BUDGET_USD` is

@@ -102,6 +102,18 @@ namespace Karman.Flight
             Invalidate();
         }
 
+        public void PlanReturnToEarth()
+        {
+            var sim = SimulationController.Instance;
+            var tr = vessel.Trajectory;
+            if (tr.Reference.Id != SolarSystemData.Moon) { Status = "Return planning needs a lunar orbit"; Changed?.Invoke(); return; }
+            var node = TransferPlanner.PlanReturnToEarth(sim.System, tr.Reference, sim.System.Get(SolarSystemData.Earth), tr.RelativeState, sim.Time, 45_000);
+            if (node == null) { Status = "No return trajectory found within one orbit"; Changed?.Invoke(); return; }
+            Node = node; Target = null;
+            Status = $"Trans-Earth injection: {node.DeltaV:F0} m/s, perigee targeted at 45 km";
+            Invalidate();
+        }
+
         void Invalidate() { predictVersion++; nextPredict = 0; Changed?.Invoke(); }
 
         // ---------------------------------------------------------------- prediction

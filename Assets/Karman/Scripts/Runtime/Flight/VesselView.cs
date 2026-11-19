@@ -20,6 +20,10 @@ namespace Karman.Flight
         public PartModelCatalog catalog;
         public Material plumeMaterial;
         public Mesh plumeMesh;
+        public Material canopyMaterial;
+        public Material plasmaMaterial;
+        Transform canopy, plasma;
+        MaterialPropertyBlock plasmaBlock;
 
         VesselController vessel;
         Transform model;
@@ -61,6 +65,61 @@ namespace Karman.Flight
                 }
             }
             UpdatePivot();
+            if (v.Vehicle.Parachute != null && canopyMaterial != null) BuildCanopy();
+            if (plasmaMaterial != null)
+            {
+                var g = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                Destroy(g.GetComponent<Collider>());
+                g.name = "Entry Plasma"; g.GetComponent<Renderer>().sharedMaterial = plasmaMaterial;
+                g.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                g.transform.SetParent(transform, false);
+                plasma = g.transform; plasma.gameObject.SetActive(false);
+                plasmaBlock = new MaterialPropertyBlock();
+            }
+        }
+
+        /// <summary>Ringsail-style canopy: shallow dome of 24 gores plus suspension lines, built procedurally.</summary>
+        void BuildCanopy()
+        {
+            var go = new GameObject("Parachute");
+            go.transform.SetParent(transform, false);
+            const int gores = 24, rings = 8;
+            var verts = new System.Collections.Generic.List<Vector3>(); var tris = new System.Collections.Generic.List<int>(); var cols = new System.Collections.Generic.List<Color>();
+            for (int r = 0; r <= rings; r++)
+            {
+                float t = (float)r / rings;
+                float ang = t * 70f * Mathf.Deg2Rad;
+                for (int g = 0; g <= gores; g++)
+                {
+                    float a = g * Mathf.PI * 2 / gores;
+                    float scallop = 1 - 0.06f * Mathf.Abs(Mathf.Sin(a * gores / 2)) * t;
+                    verts.Add(new Vector3(Mathf.Sin(ang) * Mathf.Cos(a) * scallop, Mathf.Cos(ang), Mathf.Sin(ang) * Mathf.Sin(a) * scallop));
+                    cols.Add(g % 2 == 0 ? new Color(0.92f, 0.36f, 0.18f) : new Color(0.95f, 0.95f, 0.93f));
+                }
+            }
+            for (int r = 0; r < rings; r++)
+            for (int g = 0; g < gores; g++)
+            {
+                int i = r * (gores + 1) + g, j = i + gores + 1;
+                tris.AddRange(new[] { i, j, i + 1, i + 1, j, j + 1 });
+            }
+            int baseIdx = verts.Count;
+            // Suspension lines: thin quads from the skirt to the confluence point below.
+            for (int g = 0; g < gores; g += 2)
+            {
+                Vector3 top = verts[rings * (gores + 1) + g];
+                Vector3 conf = new Vector3(0, -1.6f, 0);
+                Vector3 side = Vector3.Cross(top - conf, Vector3.up).normalized * 0.004f;
+                int k = verts.Count;
+                verts.Add(top - side); verts.Add(top + side); verts.Add(conf - side); verts.Add(conf + side);
+                for (int c = 0; c < 4; c++) cols.Add(new Color(0.8f, 0.8f, 0.8f));
+                tris.AddRange(new[] { k, k + 2, k + 1, k + 1, k + 2, k + 3 });
+            }
+            var mesh = new Mesh { name = "Canopy" };
+            mesh.SetVertices(verts); mesh.SetColors(cols); mesh.SetTriangles(tris, 0); mesh.RecalculateNormals();
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var mr = go.AddComponent<MeshRenderer>(); mr.sharedMaterial = canopyMaterial;
+            canopy = go.transform; canopy.gameObject.SetActive(false);
         }
 
         static Quaternion Rot(PartInstance p) => p.Rotation != null && p.Rotation.Length == 4 ? new Quaternion(p.Rotation[0], p.Rotation[1], p.Rotation[2], p.Rotation[3]) : Quaternion.identity;
@@ -110,13 +169,46 @@ namespace Karman.Flight
                 var part = vessel.Vehicle.Craft.Get(kv.Key);
                 var d = vessel.Vehicle.Def(part);
                 float throttle = d.Engine.Solid ? 1f : vessel.Throttle;
-                float exit = Mathf.Max(0.5f, d.Engine.VacuumThrust > 2e6 ? d.Diameter * 0.32f : d.Diameter * 0.75f);
+                float exit = d.Engine.NozzleExitDiameter > 0 ? d.Engine.NozzleExitDiameter : Mathf.Max(0.5f, d.Engine.VacuumThrust > 2e6 ? d.Diameter * 0.32f : d.Diameter * 0.75f);
+                if (d.Engine.VacuumThrust > 5e6) exit = d.Diameter * 0.32f;
                 float len = exit * (5f + 9f * vac) * (0.6f + 0.4f * throttle);
                 float width = exit * (2.2f + 5f * vac);
                 kv.Value.transform.localScale = new Vector3(width, len, width);
                 block.SetFloat(ThrottleId, throttle);
                 block.SetFloat(IntensityId, Mathf.Lerp(6f, 2.2f, vac));
                 kv.Value.SetPropertyBlock(block);
+            }
+
+            // Parachute: trails upwind, opening with the reefed area fraction.
+            var chute = vessel.Vehicle.Parachute;
+            if (canopy != null)
+            {
+                bool open = vessel.Vehicle.ParachuteDeployed && chute != null;
+                canopy.gameObject.SetActive(open);
+                if (open)
+                {
+                    float frac = Mathf.Clamp01((float)(vessel.Vehicle.ParachuteOpenTime / chute.ParachuteOpeningTime));
+                    float radius = Mathf.Sqrt((float)chute.ParachuteDragArea / 0.8f / Mathf.PI) * Mathf.Lerp(0.25f, 1f, frac);
+                    Vector3 up = -Coords.ToUnity(vessel.Trajectory.SurfaceVelocity.normalized);
+                    canopy.SetPositionAndRotation(transform.position + up * (vessel.Length * 0.5f + radius * 2.2f), Quaternion.FromToRotation(Vector3.up, up));
+                    canopy.localScale = new Vector3(radius, radius * Mathf.Lerp(0.5f, 1f, frac), radius) / Mathf.Max(1e-3f, transform.lossyScale.x);
+                }
+            }
+            // Entry plasma: glowing sheath ahead of the heat shield, intensity from the stagnation heat flux.
+            if (plasma != null)
+            {
+                float q = (float)(vessel.HeatFlux / 1e6);
+                bool on = q > 0.05f;
+                plasma.gameObject.SetActive(on);
+                if (on)
+                {
+                    Vector3 fwd = Coords.ToUnity(vessel.Trajectory.SurfaceVelocity.normalized);
+                    float size = Mathf.Max(3f, vessel.Length * 0.9f);
+                    plasma.SetPositionAndRotation(transform.position + fwd * size * 0.15f, Quaternion.FromToRotation(Vector3.up, fwd));
+                    plasma.localScale = new Vector3(size, size * (1.4f + q * 0.6f), size);
+                    plasmaBlock.SetFloat(ThrottleId, Mathf.Clamp01(q / 2f));
+                    plasma.GetComponent<Renderer>().SetPropertyBlock(plasmaBlock);
+                }
             }
 
             // Debris: gravity-only propagation (no drag yet), removed on impact or after two minutes.

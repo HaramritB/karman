@@ -227,6 +227,51 @@ namespace Karman.Core
             return Make((lo + hi) / 2);
         }
 
+        /// <summary>
+        /// Plans a trans-Earth injection from lunar orbit: scans burn times over one lunar orbit and Δv, keeps burns
+        /// that leave the Moon's SOI and reach an Earth perigee, and refines Δv by bisection to the target perigee
+        /// altitude (the entry corridor). Returns null if none is found.
+        /// </summary>
+        public static ManeuverNode PlanReturnToEarth(SolarSystem sys, CelestialBody moon, CelestialBody earth, StateVector state, double now, double targetPerigee = 45_000)
+        {
+            var orbit = KeplerOrbit.FromState(state, moon.Mu, now);
+            double r = state.position.magnitude;
+            double vEsc = Math.Sqrt(2 * moon.Mu / r), vNow = state.velocity.magnitude;
+            ManeuverNode best = null; double bestScore = double.MaxValue;
+            double start = now + 120;
+            for (double ut = start; ut < start + orbit.Period * 1.02; ut += orbit.Period / 180)
+                foreach (double extra in new[] { 700.0, 760, 820, 880, 950 })
+                {
+                    var node = new ManeuverNode { UT = ut, Prograde = Math.Max(0, vEsc - vNow) + extra - 600 };
+                    double pe = EarthPerigee(sys, moon, earth, orbit, node);
+                    if (double.IsNaN(pe)) continue;
+                    double score = Math.Abs(pe - targetPerigee);
+                    if (score < bestScore) { bestScore = score; best = node; }
+                }
+            if (best == null) return null;
+            double lo = best.Prograde - 40, hi = best.Prograde + 40;
+            double fLo = EarthPerigee(sys, moon, earth, orbit, new ManeuverNode { UT = best.UT, Prograde = lo }) - targetPerigee;
+            double fHi = EarthPerigee(sys, moon, earth, orbit, new ManeuverNode { UT = best.UT, Prograde = hi }) - targetPerigee;
+            if (double.IsNaN(fLo) || double.IsNaN(fHi) || Math.Sign(fLo) == Math.Sign(fHi)) return best;
+            for (int i = 0; i < 40; i++)
+            {
+                double mid = (lo + hi) / 2;
+                double fm = EarthPerigee(sys, moon, earth, orbit, new ManeuverNode { UT = best.UT, Prograde = mid }) - targetPerigee;
+                if (double.IsNaN(fm)) break;
+                if (Math.Sign(fm) == Math.Sign(fLo)) { lo = mid; fLo = fm; } else hi = mid;
+            }
+            return new ManeuverNode { UT = best.UT, Prograde = (lo + hi) / 2 };
+        }
+
+        /// <summary>Earth perigee altitude after a burn in lunar orbit (NaN if the trajectory does not reach Earth's SOI).</summary>
+        public static double EarthPerigee(SolarSystem sys, CelestialBody moon, CelestialBody earth, KeplerOrbit orbit, ManeuverNode node)
+        {
+            var pred = PredictAfter(sys, moon, orbit, node, null, 8 * 86400);
+            foreach (var seg in pred.Segments)
+                if (seg.Body == earth) return seg.Orbit.PeriapsisRadius - earth.Radius;
+            return double.NaN;
+        }
+
         static double Score(SolarSystem sys, CelestialBody earth, KeplerOrbit orbit, ManeuverNode node, CelestialBody moon, double target)
         {
             var pred = PredictAfter(sys, earth, orbit, node, moon);

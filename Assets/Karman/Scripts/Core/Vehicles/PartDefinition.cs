@@ -36,6 +36,7 @@ namespace Karman.Core.Vehicles
         public double MinThrottle = 1;                 // 1 = not throttleable
         public double GimbalDegrees;
         public bool Solid;
+        public float NozzleExitDiameter;              // m, for plume visuals (0 = derive from part size)
         public List<ResourceCapacity> Mixture = new List<ResourceCapacity>(); // Mass = fraction (sums to 1)
 
         public double IspAt(double pressurePa)
@@ -67,6 +68,21 @@ namespace Karman.Core.Vehicles
         public bool IsDecoupler;
         public string ModelId;             // visual asset key
         public double DragArea;            // m², frontal
+        public double DragCoefficient;     // 0 = launcher Mach curve; blunt bodies (capsules) set their own
+
+        // Landing gear (feet below the part origin), used for touchdown and resting.
+        public bool LandingLegs;
+        public float FootprintRadius;      // m, horizontal distance of the footpads from the axis
+        public double MaxTouchdownSpeed;   // m/s vertical
+
+        // Atmospheric entry.
+        public double HeatShieldCapacity;  // J/m² integrated stagnation heat load before burn-through (0 = no shield)
+        public double NoseRadius;          // m, for Sutton–Graves heating
+        public double LiftToDrag;          // hypersonic L/D of a lifting capsule (offset centre of mass)
+        public double ParachuteDragArea;   // m² (Cd·A) when fully deployed; 0 = none
+        public double ParachuteMaxDeploySpeed = 250; // m/s
+        public double ParachuteDeployAltitude = 10_000; // m
+        public double ParachuteOpeningTime = 10;         // s, reefed opening (area ramps up)
 
         public double WetMass { get { double m = DryMass; foreach (var r in Resources) m += r.Mass; return m; } }
         public AttachNode Node(string id) => Nodes.Find(n => n.Id == id);

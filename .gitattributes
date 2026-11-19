@@ -6,3 +6,4 @@
 *.prefab merge=unityyamlmerge eol=lf
 *.asset merge=unityyamlmerge eol=lf
 Assets/Karman/Art/Meshes/*.asset filter=lfs diff=lfs merge=lfs -text
+Assets/Karman/Data/**/*.bytes filter=lfs diff=lfs merge=lfs -text

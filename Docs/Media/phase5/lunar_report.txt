@@ -1,0 +1,8 @@
+Descent at 9000 m: 322 terrain patches visible, 566 built, 555 fps
+Low gate 1500 m: 2207 patches, 366 fps
+T+4392s  Touchdown on Moon: 1.5 m/s vertical, 0.0 m/s horizontal, tilt 0°
+Descent result: Landed; touchdown v=1.50 m/s vertical, 0.02 m/s horizontal, tilt 0.1°
+Site -2.984°, 141.285°, terrain height 4478 m; propellant left 9138 kg
+T+4396s  Separation: 3 parts jettisoned
+T+4396s  Stage 0 activated
+Ascent result: Orbit; orbit 45.0 × 60.1 km; propellant left 2283 kg

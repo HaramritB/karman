@@ -13,6 +13,7 @@ namespace Karman.Vehicles
 
         public GameObject Create(PartDefinition def, Transform parent)
         {
+            if (def.ModelId == "none") { var empty = new GameObject(def.Title); empty.transform.SetParent(parent, false); return empty; }
             int i = Array.IndexOf(modelIds, def.ModelId);
             GameObject go = i >= 0 && prefabs[i] ? Instantiate(prefabs[i], parent) : GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             go.transform.SetParent(parent, false);

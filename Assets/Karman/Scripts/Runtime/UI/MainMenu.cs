@@ -22,13 +22,17 @@ namespace Karman.UI
             var tag = new Label("BUILD.  LAUNCH.  EXPLORE."); tag.style.color = HudStyle.Accent; tag.style.fontSize = 15; tag.style.letterSpacing = 8; tag.style.marginBottom = 46; tag.style.marginLeft = 4;
             col.Add(title); col.Add(tag);
             col.Add(MenuButton("Vehicle Assembly Building", "Design a launcher from real-hardware-based parts", () => SceneManager.LoadScene("VAB")));
-            col.Add(MenuButton("Orbit Sandbox", "Fly a Gemini spacecraft in low Earth orbit", () => SceneManager.LoadScene("Flight")));
+            col.Add(MenuButton("Orbit Sandbox", "Fly a Gemini spacecraft in low Earth orbit", () => Start(Karman.Simulation.Scenario.OrbitSandbox)));
+            col.Add(MenuButton("Lunar Mission", "Lander stack in Earth orbit: plan the transfer, land, return", () => Start(Karman.Simulation.Scenario.LunarStackLeo)));
+            col.Add(MenuButton("Lunar Landing", "Start in a 100 km lunar orbit and land on real LOLA terrain", () => Start(Karman.Simulation.Scenario.LunarOrbitLander)));
             col.Add(MenuButton("Quit", "", Application.Quit));
             root.Add(col);
             var foot = new Label("Early development build · Earth, Moon and planets at their real positions for the current date");
             foot.style.position = Position.Absolute; foot.style.left = 114; foot.style.bottom = 40; foot.style.color = HudStyle.Dim; foot.style.fontSize = 12;
             root.Add(foot);
         }
+
+        static void Start(Karman.Simulation.Scenario s) { Karman.Simulation.GameStart.Scenario = s; SceneManager.LoadScene("Flight"); }
 
         static VisualElement MenuButton(string title, string sub, System.Action a)
         {

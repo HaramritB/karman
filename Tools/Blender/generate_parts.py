@@ -267,5 +267,5 @@ def nose():
         torus(ogive_r(zz) + 0.003, 0.008, zz - 3.0, M["grey"], 96)
     export("nose")
 
-for f in (lambda: tank("tank_8", 3.7, 8.0), lambda: tank("tank_10", 3.7, 10.0), lambda: tank("tank_16", 3.7, 16.0), lambda: tank("tank_32", 3.7, 32.0), engine_booster, engine_cluster9, engine_vacuum, srb, decoupler, radial_decoupler, adapter, interstage, nose):
+for f in (lambda: tank("tank_8", 3.7, 8.0), lambda: tank("tank_10", 3.7, 10.0), lambda: tank("tank_16", 3.7, 16.0), lambda: tank("tank_32", 3.7, 32.0), lambda: tank("tank_s15", 3.05, 1.5), lambda: tank("tank_s30", 3.05, 3.0), engine_booster, engine_cluster9, engine_vacuum, srb, decoupler, radial_decoupler, adapter, interstage, nose):
     f()

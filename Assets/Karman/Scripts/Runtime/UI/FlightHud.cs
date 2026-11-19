@@ -17,7 +17,8 @@ namespace Karman.UI
         Label clock, warp, met, vesselLabel, refBody;
         Label alt, orbV, surfV, vertV, latlon;
         Label ap, pe, inc, ecc, period, timeAp, timePe;
-        Label throttle, thrust, dv, burn, twr, sas, prop, light, stageLabel, machQ, toast;
+        Label throttle, thrust, dv, burn, twr, sas, prop, light, stageLabel, machQ, toast, radar, entry;
+        public Karman.Flight.LunarAutopilot lunarAutopilot;
         VisualElement stageStack;
         float toastUntil, nextAnalysis;
         Karman.Core.Vehicles.CraftAnalysis analysis;
@@ -89,6 +90,8 @@ namespace Karman.UI
             vertV = HudStyle.Row(flight, "Vertical speed");
             latlon = HudStyle.Row(flight, "Lat / Lon");
             light = HudStyle.Row(flight, "Sunlight");
+            radar = HudStyle.Row(flight, "Radar alt · g");
+            entry = HudStyle.Row(flight, "Heat · chute");
             left.Add(flight);
 
             var orbit = HudStyle.PanelBox(270);
@@ -159,7 +162,7 @@ namespace Karman.UI
                 "Shift/Ctrl throttle · Z full · X cut · Space stage",
                 "T SAS on/off · 1 hold · 2 prograde · 3 retrograde",
                 "4/5 normal/anti-normal · 6/7 radial · 8 surface prograde",
-                "G ascent assist (pad to orbit)",
+                "G assist: Earth ascent · lunar landing / ascent · C arm parachute",
                 ", / . time warp · / real time · P pause",
                 "Right-drag orbit camera · scroll zoom",
                 "V cycle focus · Backspace vessel · M map (plan nodes) · N execute node · Esc menu",
@@ -210,6 +213,11 @@ namespace Karman.UI
             float ill = lighting ? lighting.Illumination : 1;
             light.text = ill > 0.99f ? "Daylight" : ill < 0.01f ? "Eclipse" : $"Penumbra {ill * 100:F0}%";
 
+ radar.text = $"{HudStyle.Distance(v.GroundClearance)} · {v.GLoad:F2} g";
+            radar.style.color = v.GroundClearance < 1000 && tr.VerticalSpeed < -5 ? HudStyle.Warn : HudStyle.Text;
+            var chuteDef = v.Vehicle.Parachute;
+            entry.text = $"{v.HeatFlux / 1000:N0} kW/m² · {(chuteDef == null ? "none" : v.Vehicle.ParachuteDeployed ? "deployed" : v.Vehicle.ParachuteArmed ? "armed" : "stowed (C)")}";
+            if (v.Vehicle.HeatShield != null) entry.text += $" · shield {100 * (1 - v.Vehicle.HeatLoad / v.Vehicle.HeatShield.HeatShieldCapacity):F0}%";
             ap.text = o.IsHyperbolic ? "Escape" : HudStyle.Distance(tr.ApoapsisAltitude);
             pe.text = HudStyle.Distance(tr.PeriapsisAltitude);
             pe.style.color = tr.PeriapsisAltitude < 0 ? HudStyle.Bad : tr.PeriapsisAltitude < 140_000 && tr.Reference.Definition.Atmosphere != null ? HudStyle.Warn : HudStyle.Text;
@@ -245,7 +253,9 @@ namespace Karman.UI
             dv.text = $"{(cur != null ? cur.DeltaV : 0):N0} / {analysis.TotalDeltaV:N0} m/s";
             burn.text = cur != null ? HudStyle.Duration(cur.BurnTime) : "—";
             machQ.text = v.InAtmosphere ? $"{v.Mach:F2} · {v.DynamicPressure / 1000:F1} kPa" : "vacuum";
-            sas.text = $"{v.Sas}{(autopilot != null && autopilot.State != Karman.Flight.AscentAutopilot.Phase.Off ? " · " + autopilot.Status : "")}";
+            string assist = autopilot != null && autopilot.State != Karman.Flight.AscentAutopilot.Phase.Off ? autopilot.Status
+                          : lunarAutopilot != null && lunarAutopilot.State != Karman.Flight.LunarAutopilot.Phase.Off ? lunarAutopilot.Status : "";
+            sas.text = $"{v.Sas}{(assist.Length > 0 ? " · " + assist : "")}";
             sas.style.color = v.Sas == SasMode.Off ? HudStyle.Dim : HudStyle.Accent;
 
             stageStack.Clear();

@@ -177,10 +177,10 @@ namespace Karman.EditorTools
             const string path = "Assets/Karman/Settings/PartModelCatalog.asset";
             var cat = AssetDatabase.LoadAssetAtPath<PartModelCatalog>(path);
             if (cat == null) { cat = ScriptableObject.CreateInstance<PartModelCatalog>(); AssetDatabase.CreateAsset(cat, path); }
-            string[] ids = { "gemini", "tank_8", "tank_10", "tank_16", "tank_32", "engine_booster", "engine_cluster9", "engine_vacuum", "srb", "decoupler", "radial_decoupler", "adapter", "interstage", "nose" };
+            string[] ids = { "gemini", "lm_descent", "lm_ascent", "tank_8", "tank_10", "tank_16", "tank_32", "tank_s15", "tank_s30", "engine_booster", "engine_cluster9", "engine_vacuum", "srb", "decoupler", "radial_decoupler", "adapter", "interstage", "nose" };
             var prefabs = new GameObject[ids.Length];
             for (int i = 0; i < ids.Length; i++)
-                prefabs[i] = ids[i] == "gemini" ? GeminiPrefab() : KarmanSetup.Load<GameObject>($"{Parts}/{ids[i]}.fbx");
+                prefabs[i] = ids[i] == "gemini" ? GeminiPrefab() : ids[i].StartsWith("lm_") ? KarmanSetup.Load<GameObject>($"Assets/Karman/Art/Models/Lander/{ids[i]}.fbx") : KarmanSetup.Load<GameObject>($"{Parts}/{ids[i]}.fbx");
             cat.modelIds = ids; cat.prefabs = prefabs;
             EditorUtility.SetDirty(cat);
             AssetDatabase.SaveAssets();

@@ -43,7 +43,8 @@ namespace Karman.Flight
         void Update()
         {
             var kb = Keyboard.current;
-            if (kb != null && kb.gKey.wasPressedThisFrame) { if (State == Phase.Off || State == Phase.Done) Engage(); else Disengage(); }
+            bool earthLike = vessel != null && vessel.Trajectory != null && vessel.Trajectory.Reference.Definition.Atmosphere != null;
+            if (kb != null && kb.gKey.wasPressedThisFrame && earthLike) { if (State == Phase.Off || State == Phase.Done) Engage(); else Disengage(); }
             if (guidance == null || vessel == null || vessel.Trajectory == null) return;
             var sim = SimulationController.Instance;
             if (vessel.Crashed) { State = Phase.Failed; vessel.AttitudeTarget = null; guidance = null; return; }

@@ -46,10 +46,24 @@
 - [x] Node execution autopilot (warp to burn, steer to Δv vector, throttle-down, staging); HUD and navball MNV marker
 - [ ] Vessel-to-vessel rendezvous (needs a second active/passive vessel); multiple nodes
 
-## Phase 5–6
-Lunar landing & return · polish. See the brief.
+## Phase 5 — Lunar exploration ✅ first pass (2026-11-19)
+- [x] LOLA global DEM (CGI Moon Kit, 16 px/deg) + procedural craters/relief below the DEM resolution, one height
+      function for physics and rendering (`LunarTerrain`)
+- [x] Quadtree cube-sphere terrain (worker-thread patches, skirts, horizon culling, double-precision placement)
+- [x] Apollo LM (NASA model) split into descent/ascent stage parts; service engine; hypergolic tanks; nozzle-sized plumes
+- [x] Terrain contact with touchdown limits (vertical/horizontal speed, tilt), landed state on the rotating Moon
+- [x] Landing assist (deorbit → powered descent → terminal) and lunar ascent assist; trans-Earth injection planner
+- [x] Earth entry: Sutton–Graves heating vs heat-shield capacity, capsule lift with bank law, reefed parachute,
+      splashdown limit; plasma sheath and canopy visuals; HUD radar altitude, g, heat, chute
+- [x] Scenarios: Lunar Mission (lander stack in a Moon-plane LEO), Lunar Landing (100 km lunar orbit)
+- [ ] Full Earth-launch lunar mission needs a heavier launcher (current launcher lifts the Gemini, not the 210 t stack)
+- [ ] Higher-resolution DEM tiles at landing sites; terrain shadows; landing-leg suspension animation
+
+## Phase 6
+Polish: shaders, terrain detail, sound, UI, more vehicles/parts, performance, bug fixing. See the brief.
 
 ## Known issues
+- Rigid vehicles: no structural loads or aerodynamic torques; attitude authority is idealised (pod torque + gimbal).
 - Ground near the pad is washed out by atmospheric haze at low altitude, and its procedural detail is coarse.
 - Pad structures are simple box geometry; replace with sourced/modelled assets.
 - Earth surface from LEO is slightly hazy; atmosphere is single-scattering only.

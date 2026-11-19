@@ -52,6 +52,18 @@ Earth heliocentric velocity within 0.05 km/s. GMST at J2000 matches 280.46061837
 - In the built game: +40 m/s node at apoapsis predicted Ap 419.469 km; the node autopilot's finite 169 s burn achieved
   418.543 km (0.2 % low, the expected finite-burn loss) with Pe unchanged.
 
+## Lunar mission (Phase 5, headless with the game's models)
+- LOLA DEM orientation checked: highest point 10,685 m at 5.4°N 158.7°W, lowest −8,982 m in the South Pole–Aitken basin;
+  Tycho's floor ~2 km below its rim.
+- Powered descent from a 100 km lunar orbit (deorbit Δv 19.5 m/s) onto real terrain (far side, 4.8 km elevation):
+  touchdown **1.5 m/s vertical, 0.0 m/s horizontal**, descent Δv 2,306 m/s.
+- Lunar ascent with the return vehicle: 46.6 × 60.2 km orbit, 1,784 m/s.
+- Trans-Earth injection planner: 1,038 m/s, Earth perigee 45.0 km; entry at 11,019 m/s, −6.14°, 64.9 h later.
+- Entry (L/D 0.25 capsule, bank law, reefed 480 m² chute): peak **6.3 g**, peak heating 3.2 MW/m², heat load 351 of
+  450 MJ/m², chute at 5.3 km, splashdown 11.1 m/s, downrange 2,124 km.
+- In the built game (automated, Lunar Landing scenario): touchdown 1.5 m/s vertical / 0.01 m/s horizontal / 0.1° tilt;
+  ascent to 45.0 × 60.3 km. Terrain: ~300–2,000 visible patches, 140–420 fps near the surface (M3 Pro, 1080p).
+
 ## Approximations (documented)
-Rigid vehicle; drag only (no lift or aerodynamic torque yet); attitude authority = pod torque + engine gimbal; point-mass gravity of the dominant body only (no J2, no third-body perturbations yet); fixed ΔT = 69.2 s;
+Rigid vehicle; lunar terrain detail below 1.9 km is procedural (not measured); drag only (no lift or aerodynamic torque yet); attitude authority = pod torque + engine gimbal; point-mass gravity of the dominant body only (no J2, no third-body perturbations yet); fixed ΔT = 69.2 s;
 Moon series truncated (≈ 1.5′); planetary elements valid 1800–2050.

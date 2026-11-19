@@ -74,7 +74,6 @@ namespace Karman.Core.Vehicles
                 }
                 else if (d.Engine != null) lit.Add(p.Id);
             }
-            if (NextStage < 0) ActivateUnstagedEngines();
             if (detached.Count > 0) PartsDetached?.Invoke(detached);
             return detached;
         }
@@ -101,8 +100,18 @@ namespace Karman.Core.Vehicles
             foreach (var p in Craft.Parts) if (Attached.Contains(p.Id) && section[p.Id] == sec) foreach (var r in p.Resources) if (r.Type == type) r.Mass *= 1 - f;
         }
 
-        /// <summary>Engines that are lit and have propellant.</summary>
-        public List<int> BurningEngines() => lit.Where(id => Attached.Contains(id) && EngineHasFuel(id)).ToList();
+        /// <summary>Engines that are lit and have propellant. Once every stage is spent and nothing staged can burn,
+        /// unstaged engines (e.g. a capsule's manoeuvring thrusters) take over.</summary>
+        public List<int> BurningEngines()
+        {
+            var b = lit.Where(id => Attached.Contains(id) && EngineHasFuel(id)).ToList();
+            if (b.Count == 0 && NextStage < 0)
+            {
+                ActivateUnstagedEngines();
+                b = lit.Where(id => Attached.Contains(id) && EngineHasFuel(id)).ToList();
+            }
+            return b;
+        }
 
         /// <summary>Burn for dt. Solid motors ignore throttle. Returns total thrust (N) and sets the thrust-weighted Isp.</summary>
         public double Burn(double throttle, double dt, double pressurePa, out double isp, out double maxThrust)
@@ -194,11 +203,44 @@ namespace Karman.Core.Vehicles
             foreach (var p in AttachedParts)
             {
                 var d = lookup(p.PartId);
-                float half = Math.Max(d.Height, d.Diameter) / 2;
+                float half = d.Height / 2;
                 bottom = Math.Min(bottom, p.Position[1] - half); top = Math.Max(top, p.Position[1] + half);
             }
         }
 
         public double PropellantRemaining => AttachedParts.Sum(p => p.Resources.Sum(r => r.Mass));
+
+        // ---------------------------------------------------------------- landing, entry, recovery
+
+        public PartDefinition LandingGear => AttachedParts.Select(p => lookup(p.PartId)).FirstOrDefault(d => d.LandingLegs);
+        /// <summary>Allowed vertical touchdown speed: landing legs if present, else structural (capsule on water/ground).</summary>
+        public double MaxTouchdownSpeed => LandingGear?.MaxTouchdownSpeed ?? (HeatShield != null ? 12.0 : 4.0);
+        public PartDefinition HeatShield => AttachedParts.Select(p => lookup(p.PartId)).FirstOrDefault(d => d.HeatShieldCapacity > 0);
+        public PartDefinition Parachute => AttachedParts.Select(p => lookup(p.PartId)).FirstOrDefault(d => d.ParachuteDragArea > 0);
+        public bool ParachuteArmed { get; set; }
+        public bool ParachuteDeployed { get; set; }
+        public double ParachuteOpenTime { get; set; }   // seconds since deployment
+        /// <summary>Effective parachute Cd·A, ramping up over the reefed opening time.</summary>
+        public double ParachuteCdA(double dt)
+        {
+            var c = Parachute;
+            if (!ParachuteDeployed || c == null) return 0;
+            ParachuteOpenTime += dt;
+            return c.ParachuteDragArea * Math.Min(1, Math.Pow(ParachuteOpenTime / Math.Max(0.1, c.ParachuteOpeningTime), 2));
+        }
+        public double HeatLoad { get; set; }  // J/m² absorbed by the shield
+
+        public double LiftToDrag { get { if (AttachedParts.Count() > 3) return 0; foreach (var p in AttachedParts) { var d = lookup(p.PartId); if (d.LiftToDrag > 0) return d.LiftToDrag; } return 0; } }
+
+        /// <summary>Blunt-body drag coefficient when the vehicle is down to a capsule; 0 = use the launcher Mach curve.</summary>
+        public double DragCoefficientOverride
+        {
+            get
+            {
+                if (AttachedParts.Count() > 3) return 0;
+                foreach (var p in AttachedParts) { var d = lookup(p.PartId); if (d.DragCoefficient > 0) return d.DragCoefficient; }
+                return 0;
+            }
+        }
     }
 }

@@ -81,6 +81,7 @@ namespace Karman.Map
             plan.Add(Btn("Node at Pe", () => planner.CreateNodeAtApsis(false)));
             plan.Add(Btn("Circularise", planner.PlanCircularisation));
             plan.Add(Btn("Plan Moon transfer", planner.PlanLunarTransfer));
+            plan.Add(Btn("Return to Earth", planner.PlanReturnToEarth));
             plan.Add(Btn("Target Moon", () => planner.Target = planner.Target == null ? SimulationController.Instance.System.Get(SolarSystemData.Moon) : null));
             panel.Add(plan);
             var dv = Row();

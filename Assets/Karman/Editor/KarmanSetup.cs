@@ -197,7 +197,14 @@ namespace Karman.EditorTools
             atmoR.sharedMaterial = atmoMat;
             atmoR.shadowCastingMode = ShadowCastingMode.Off;
             earthView.atmosphere = atmoR;
-            MakeBody(bodiesRoot, SolarSystemData.Moon, BodyShading.Moon, moonMat, sphereHi);
+            var moonView = MakeBody(bodiesRoot, SolarSystemData.Moon, BodyShading.Moon, moonMat, sphereHi);
+            var loader = simGo.AddComponent<TerrainLoader>();
+            loader.moonDem = Load<TextAsset>($"{Root}/Data/Moon/moon_dem16.bytes");
+            var moonTerrainMat = Mat("MoonTerrain", "Karman/MoonTerrain");
+            moonTerrainMat.SetTexture("_ColorTex", Load<Texture2D>($"{Tex}/Moon/moon_color_4k.png"));
+            var quadtree = moonView.gameObject.AddComponent<TerrainQuadtree>();
+            quadtree.bodyView = moonView;
+            quadtree.material = moonTerrainMat;
             var sunView = MakeBody(bodiesRoot, SolarSystemData.Sun, BodyShading.Sun, sunMat, sphereLo);
 
             string[] planetIds = { SolarSystemData.Mercury, SolarSystemData.Venus, SolarSystemData.Mars, SolarSystemData.Jupiter, SolarSystemData.Saturn, SolarSystemData.Uranus, SolarSystemData.Neptune };
@@ -248,6 +255,10 @@ namespace Karman.EditorTools
             vesselView.catalog = VabSceneBuilder.Catalog();
             vesselView.plumeMaterial = plumeMat;
             vesselView.plumeMesh = SaveMesh(PlumeMesh(), "PlumeCone");
+            vesselView.canopyMaterial = Mat("ParachuteCanopy", "Karman/Line");
+            var plasmaMat = Mat("EntryPlasma", "Karman/Plume");
+            plasmaMat.SetColor("_Color", new Color(1f, 0.55f, 0.35f)); plasmaMat.SetColor("_EdgeColor", new Color(1f, 0.25f, 0.45f)); plasmaMat.SetFloat("_Intensity", 2.5f);
+            vesselView.plasmaMaterial = plasmaMat;
             vessel.view = vesselView;
             LaunchSiteBuilder.Build(earthMat);
             }
@@ -308,6 +319,11 @@ namespace Karman.EditorTools
             var autopilot = simGo.AddComponent<AscentAutopilot>();
             autopilot.vessel = vessel;
             hud.autopilot = autopilot;
+            var lunarAuto = simGo.AddComponent<LunarAutopilot>();
+            lunarAuto.vessel = vessel;
+            hud.lunarAutopilot = lunarAuto;
+            var lunarCapture = simGo.AddComponent<LunarCapture>();
+            lunarCapture.orbitCamera = orbitCam; lunarCapture.autopilot = lunarAuto; lunarCapture.planner = null;
             var launchCapture = simGo.AddComponent<LaunchCapture>();
             launchCapture.orbitCamera = orbitCam;
             launchCapture.autopilot = autopilot;

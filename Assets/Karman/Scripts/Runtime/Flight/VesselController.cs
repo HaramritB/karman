@@ -32,7 +32,7 @@ namespace Karman.Flight
         public double padHeight = 15;
 
         [Tooltip("Reaction-wheel/RCS torque available from command parts, N·m.")]
-        public float commandTorque = 4500f;
+        public float commandTorque = 25000f;
         public VesselView view;
 
         public string vesselName = "Gemini";
@@ -54,11 +54,18 @@ namespace Karman.Flight
         public double MaxQ { get; private set; }
         /// <summary>Cumulative Δv delivered by engines (thrust/mass integrated over time), for burn tracking.</summary>
         public double DeliveredDeltaV { get; private set; }
+        public double HeatFlux { get; private set; }
+        public double PeakHeatFlux { get; private set; }
+        public double GLoad { get; private set; }
+        public double PeakGLoad { get; private set; }
+        public double TerrainHeight { get; private set; }
+        public double GroundClearance { get; private set; }
         /// <summary>Autopilot override: Unity-world direction the nose should point.</summary>
         public Vector3? AttitudeTarget { get; set; }
         public bool WantsThrust => !Crashed && Throttle > 0 && Vehicle.BurningEngines().Count > 0;
         public bool InAtmosphere => Trajectory != null && Trajectory.Reference.Definition.Atmosphere != null && Trajectory.Altitude < EarthAtmosphere.Cutoff;
-        public bool CanWarp => !WantsThrust && !Crashed && !InAtmosphere && !Landed;
+        public bool CanWarp => !WantsThrust && !Crashed && !InAtmosphere && !Landed && !NearSurfaceOnImpactCourse;
+        bool NearSurfaceOnImpactCourse => Trajectory != null && Trajectory.Altitude - TerrainHeight < 25_000 && Trajectory.PeriapsisAltitude < 12_000;
         public double MissionElapsed => Launched ? SimulationController.Instance.Time - launchTime : 0;
         /// <summary>Height of the centre of mass above the vessel's lowest point (m).</summary>
         public double StandoffHeight { get; private set; }
@@ -88,6 +95,27 @@ namespace Karman.Flight
                 Trajectory = new SpacecraftTrajectory(sim.System, earth, LandedState(earth), sim.Time);
                 attitude = SurfaceAttitude(earth);
                 Sas = SasMode.Stability;
+            }
+            else if (GameStart.FromCommandLine() == Scenario.LunarStackLeo)
+            {
+                Vehicle = new FlightVehicle(SampleCrafts.LunarLander(Lookup, true), Lookup);
+                vesselName = Vehicle.Craft.Name;
+                RefreshGeometry();
+                Launched = true; launchTime = sim.Time;
+                Trajectory = new SpacecraftTrajectory(sim.System, earth, OrbitState(earth, sim.System.Sun, true), sim.Time);
+                Vehicle.Stage(); // trans-lunar stage engine ready
+                attitude = Quaternion.LookRotation(-Coords.ToUnity(Trajectory.RelativeState.position.normalized), Coords.ToUnity(Trajectory.RelativeState.velocity.normalized));
+            }
+            else if (GameStart.FromCommandLine() == Scenario.LunarOrbitLander)
+            {
+                var moon = sim.System.Get(SolarSystemData.Moon);
+                Vehicle = new FlightVehicle(SampleCrafts.LunarLander(Lookup, false), Lookup);
+                vesselName = Vehicle.Craft.Name;
+                RefreshGeometry();
+                Launched = true; launchTime = sim.Time;
+                Trajectory = new SpacecraftTrajectory(sim.System, moon, LunarOrbitState(moon, sim.System.Sun, 100_000, 10), sim.Time);
+                Vehicle.Stage(); // descent engine ready
+                attitude = Quaternion.LookRotation(-Coords.ToUnity(Trajectory.RelativeState.position.normalized), Coords.ToUnity(-Trajectory.RelativeState.velocity.normalized));
             }
             else
             {
@@ -145,7 +173,25 @@ namespace Karman.Flight
             return Quaternion.LookRotation(Coords.ToUnity(east), Coords.ToUnity(r.normalized));
         }
 
-        StateVector OrbitState(CelestialBody earth, CelestialBody sun)
+        /// <summary>Circular lunar orbit starting over the sunlit side, a little before the morning terminator.</summary>
+        StateVector LunarOrbitState(CelestialBody moon, CelestialBody sun, double alt, double incDeg)
+        {
+            Vector3d pole = moon.Orientation.Column(2);
+            Vector3d toSun = (sun.Position - moon.Position).normalized;
+            Vector3d s = (toSun - pole * Vector3d.Dot(toSun, pole)).normalized;
+            Vector3d e = Vector3d.Cross(pole, s);
+            double a = 110 * Constants.Deg2Rad;    // starts on the night side; the descent ends ~half an orbit later in morning light
+            Vector3d rHat = s * Math.Cos(a) - e * Math.Sin(a);
+            double inc = incDeg * Constants.Deg2Rad;
+            Vector3d h = pole * Math.Cos(inc) + Vector3d.Cross(rHat, pole) * Math.Sin(inc);
+            Vector3d vHat = Vector3d.Cross(h, rHat).normalized;
+            double r = moon.Radius + alt;
+            return new StateVector(rHat * r, vHat * Math.Sqrt(moon.Mu / r));
+        }
+
+        StateVector OrbitState(CelestialBody earth, CelestialBody sun) => OrbitState(earth, sun, CommandLine.Has("-karmanMoonPlane"));
+
+        StateVector OrbitState(CelestialBody earth, CelestialBody sun, bool moonPlane)
         {
             Vector3d pole = earth.Orientation.Column(2);
             Vector3d toSun = (sun.Position - earth.Position).normalized;
@@ -155,7 +201,7 @@ namespace Karman.Flight
             Vector3d rHat = s * Math.Cos(a) - e * Math.Sin(a);
             double inc = initialInclinationDeg * Constants.Deg2Rad;
             Vector3d h = pole * Math.Cos(inc) + Vector3d.Cross(rHat, pole) * Math.Sin(inc);
-            if (CommandLine.Has("-karmanMoonPlane"))
+            if (moonPlane)
             {
                 // Parking orbit in the Moon's orbital plane (for lunar-transfer planning demos).
                 var ms = Ephemeris.MoonGeocentricState(SimulationController.Instance.Time);
@@ -163,7 +209,7 @@ namespace Karman.Flight
                 rHat = (rHat - h * Vector3d.Dot(rHat, h)).normalized;
             }
             Vector3d vHat = Vector3d.Cross(h, rHat).normalized;
-            double rp = earth.Radius + initialPeriapsisAlt, ra = earth.Radius + initialApoapsisAlt;
+            double rp = earth.Radius + (moonPlane ? 300_000 : initialPeriapsisAlt), ra = earth.Radius + (moonPlane ? 300_000 : initialApoapsisAlt);
             double sma = (rp + ra) / 2;
             return new StateVector(rHat * rp, vHat * Math.Sqrt(earth.Mu * (2 / rp - 1 / sma)));
         }
@@ -180,6 +226,7 @@ namespace Karman.Flight
             if (kb.zKey.wasPressedThisFrame) Throttle = 1;
             if (kb.xKey.wasPressedThisFrame) Throttle = 0;
             if (kb.spaceKey.wasPressedThisFrame) StageNext();
+            if (kb.cKey.wasPressedThisFrame && Vehicle.Parachute != null) { Vehicle.ParachuteArmed = !Vehicle.ParachuteArmed; Event?.Invoke(Vehicle.ParachuteArmed ? "Parachute armed (deploys below safe speed/altitude)" : "Parachute disarmed"); }
             if (kb.tKey.wasPressedThisFrame) Sas = Sas == SasMode.Off ? SasMode.Stability : SasMode.Off;
             if (kb.digit1Key.wasPressedThisFrame) Sas = SasMode.Stability;
             if (kb.digit2Key.wasPressedThisFrame) Sas = SasMode.Prograde;
@@ -267,20 +314,18 @@ namespace Karman.Flight
             Vector3d pole = body.Orientation.Column(2);
             double omega = 2 * Math.PI / body.Definition.SiderealRotationPeriod;
             var air = Air;
+            double cdOverride = Vehicle.DragCoefficientOverride;
+            var chute = Vehicle.Parachute;
+            if (chute != null && Vehicle.ParachuteArmed && !Vehicle.ParachuteDeployed && Air.Density > 0
+                && Trajectory.Altitude < chute.ParachuteDeployAltitude && Trajectory.SurfaceVelocity.magnitude < chute.ParachuteMaxDeploySpeed)
+            { Vehicle.ParachuteDeployed = true; Event?.Invoke("Parachute deployed"); }
+            double chuteCdA = Vehicle.ParachuteCdA(dt);
+            double ld = Vehicle.ParachuteDeployed ? 0 : Vehicle.LiftToDrag;
+            double bank = FlightEnvironment.EntryBank(Trajectory.VerticalSpeed, GLoad, Trajectory.Altitude);
             Func<Vector3d, Vector3d, Vector3d> forces = (r, v) =>
             {
-                Vector3d a = thrustAccel;
-                if (air.Density > 0)
-                {
-                    Vector3d vRel = v - Vector3d.Cross(pole * omega, r);
-                    double speed = vRel.magnitude;
-                    if (speed > 1e-3)
-                    {
-                        double cd = EarthAtmosphere.DragCoefficient(speed / air.SpeedOfSound);
-                        a -= vRel * (0.5 * air.Density * speed * cd * area / m0);
-                    }
-                }
-                return a;
+                var drag = FlightEnvironment.DragAcceleration(r, v, pole, omega, air, m0, area, cdOverride, chuteCdA);
+                return thrustAccel + drag + FlightEnvironment.LiftAcceleration(r, v, pole, omega, drag, ld, bank);
             };
             bool integrate = thrustAccel.sqrMagnitude > 0 || (hasAtmo && Trajectory.Altitude < EarthAtmosphere.Cutoff);
             if (integrate) Trajectory.Advance(dt, forces, 0.02);
@@ -291,22 +336,49 @@ namespace Karman.Flight
             Mach = Air.SpeedOfSound > 0 ? vr.magnitude / Air.SpeedOfSound : 0;
             MaxQ = Math.Max(MaxQ, DynamicPressure);
 
-            double groundClearance = Trajectory.Altitude - StandoffHeight;
-            if (groundClearance < 0 && Trajectory.VerticalSpeed < 0)
+            // Entry heating (Sutton–Graves) on the heat shield; unshielded vehicles break up under sustained heating.
+            HeatFlux = FlightEnvironment.StagnationHeatFlux(Air.Density, vr.magnitude, Vehicle.HeatShield?.NoseRadius ?? 1.0);
+            PeakHeatFlux = Math.Max(PeakHeatFlux, HeatFlux);
+            Vector3d aero = FlightEnvironment.DragAcceleration(Trajectory.RelativeState.position, Trajectory.RelativeState.velocity, pole, omega, Air, Vehicle.Mass, area, cdOverride, chuteCdA);
+            GLoad = (aero + thrustAccel).magnitude / Constants.StandardGravity;
+            PeakGLoad = Math.Max(PeakGLoad, GLoad);
+            if (HeatFlux > 0)
             {
-                if (vr.magnitude < 6)
+                Vehicle.HeatLoad += HeatFlux * dt;
+                var shield = Vehicle.HeatShield;
+                if (shield != null && Vehicle.HeatLoad > shield.HeatShieldCapacity) { Crashed = true; Throttle = 0; Event?.Invoke("Heat shield burn-through"); return; }
+                if (shield == null && HeatFlux > 1.2e6) { Crashed = true; Throttle = 0; Event?.Invoke("Vehicle broke up during entry"); return; }
+            }
+            if (Vehicle.ParachuteDeployed && Vehicle.Parachute != null && DynamicPressure > 12_000) { Vehicle.ParachuteDeployed = false; Vehicle.ParachuteArmed = false; Event?.Invoke("Parachute torn off (too fast)"); }
+
+            // Surface contact against the body's terrain (DEM-based on the Moon, sphere elsewhere).
+            TerrainHeight = TerrainRegistry.HeightAt(body, Trajectory.RelativeState.position);
+            GroundClearance = Trajectory.Altitude - TerrainHeight - StandoffHeight;
+            if (GroundClearance < 0 && Trajectory.VerticalSpeed < 0)
+            {
+                double vVert = -Trajectory.VerticalSpeed;
+                double vHoriz = (vr - Trajectory.RelativeState.position.normalized * Vector3d.Dot(vr, Trajectory.RelativeState.position.normalized)).magnitude;
+                float tilt = Vector3.Angle(attitude * Vector3.up, Coords.ToUnity(Trajectory.RelativeState.position.normalized));
+                double limit = Vehicle.MaxTouchdownSpeed;
+                bool legs = Vehicle.LandingGear != null;
+                if (vVert <= limit && vHoriz <= (legs ? 2.5 : limit) && (tilt < 25 || !legs))
                 {
-                    landedBodyFixed = body.Orientation.Transposed * (Trajectory.RelativeState.position.normalized * (body.Radius + StandoffHeight));
-                    Landed = true; Throttle = 0;
-                    Event?.Invoke("Touchdown");
+                    landedBodyFixed = body.Orientation.Transposed * (Trajectory.RelativeState.position.normalized * (body.Radius + TerrainHeight + StandoffHeight));
+                    Landed = true; Throttle = 0; AngularVelocity = Vector3.zero;
+                    LastTouchdown = new Vector3((float)vVert, (float)vHoriz, tilt);
+                    Event?.Invoke($"Touchdown on {body.Definition.DisplayName}: {vVert:F1} m/s vertical, {vHoriz:F1} m/s horizontal, tilt {tilt:F0}°");
                 }
                 else
                 {
                     Crashed = true; Throttle = 0;
-                    Event?.Invoke($"Impact at {vr.magnitude:F0} m/s");
+                    LastTouchdown = new Vector3((float)vVert, (float)vHoriz, tilt);
+                    Event?.Invoke($"Impact on {body.Definition.DisplayName} at {vVert:F1} m/s vertical, {vHoriz:F1} m/s horizontal, tilt {tilt:F0}°");
                 }
             }
         }
+
+        /// <summary>Last contact: (vertical speed, horizontal speed, tilt degrees).</summary>
+        public Vector3 LastTouchdown { get; private set; }
 
         void UpdateAttitude(float dt)
         {
