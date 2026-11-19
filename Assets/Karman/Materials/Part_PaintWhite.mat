@@ -41,12 +41,16 @@ Material:
     - _AlbedoStrength: 0.12
     - _Cull: 2
     - _Desaturate: 1
+    - _Grime: 0
+    - _GrimeScale: 6
     - _Metallic: 0
     - _NormalStrength: 0.35
     - _ObjectSpace: 1
+    - _Panel: 0
     - _Roughness: 0.55
     - _Tiling: 2.4
     m_Colors:
     - _BaseColor: {r: 0.93, g: 0.93, b: 0.92, a: 1}
+    - _GrimeColor: {r: 0.31999996, g: 0.29999998, b: 0.26999995, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

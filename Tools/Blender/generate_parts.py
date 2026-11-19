@@ -36,6 +36,7 @@ def materials():
     M["niobium"] = mat("NiobiumC103", (0.22, 0.21, 0.24), 1.0, 0.35)
     M["gold"] = mat("GoldFoil", (0.85, 0.62, 0.25), 1.0, 0.28)
     M["cork"] = mat("CorkTPS", (0.48, 0.36, 0.25), 0.0, 0.85)
+    M["foam"] = mat("SprayFoam", (0.55, 0.25, 0.08), 0.0, 0.9)
 
 def assign(obj, m):
     obj.data.materials.clear(); obj.data.materials.append(m)
@@ -141,20 +142,39 @@ def preview(name, size):
 
 # ------------------------------------------------------------------ parts
 
-def tank(name, d, h):
+def tank(name, d, h, foam=False):
+    """Tank barrel: skin, ring-frame weld seams, end flanges, cable raceway on brackets, feedline cover,
+    fill/drain access panels and a vent valve. Hydrogen tanks wear orange spray-on foam insulation."""
     reset(); materials()
     r = d / 2
-    cyl(r, h, 0, 96, M["white"], name="skin")
-    # weld / ring-frame seams every ~2 m
-    n = max(2, int(h / 2.0))
-    for i in range(n + 1):
-        z = -h / 2 + h * i / n
-        torus(r + 0.004, 0.012, z, M["grey"], 96)
-    # cable raceway along the side and stringer hint plates
-    box(0.16, 0.10, h * 0.96, (r + 0.05, 0, 0), M["white"])
-    box(0.06, 0.04, h * 0.96, (r + 0.13, 0, 0), M["grey"])
-    # feedline cover
-    box(0.22, 0.16, h * 0.9, (-r - 0.07, 0, 0), M["white"])
+    skin = M["foam"] if foam else M["white"]
+    cyl(r, h, 0, 128, skin, name="skin")
+    # end flanges (bolted joints to the next part)
+    for zz in (-h / 2 + 0.09, h / 2 - 0.09):
+        cyl(r + 0.022, 0.18, zz, 128, M["grey"], cap=False, name="flange")
+    if not foam:
+        n = max(2, int(h / 2.0))
+        for i in range(1, n):
+            z = -h / 2 + h * i / n
+            torus(r + 0.003, 0.009, z, M["grey"], 128)
+    else:
+        # foam close-out seams every ~2.5 m
+        n = max(2, int(h / 2.5))
+        for i in range(1, n):
+            torus(r + 0.004, 0.012, -h / 2 + h * i / n, M["foam"], 128)
+    # cable raceway on brackets
+    rw = h * 0.94
+    box(0.14, 0.09, rw, (r + 0.075, 0, 0), M["white"] if not foam else M["grey"])
+    nb = max(3, int(rw / 1.4))
+    for i in range(nb + 1):
+        z = -rw / 2 + rw * i / nb
+        box(0.06, 0.2, 0.08, (r + 0.03, 0, z), M["grey"])
+    # feedline / pressurisation line cover on the opposite side
+    box(0.26, 0.18, h * 0.9, (-r - 0.08, 0, 0), M["white"] if not foam else M["foam"])
+    # fill/drain access panels near the aft end and a vent valve near the top
+    for a in (0.9, -0.9):
+        p = box(0.6, 0.03, 0.45, (r * math.cos(a), r * math.sin(a), -h / 2 + 0.7), M["grey"], rot=(0, 0, a + math.pi / 2))
+    v = box(0.22, 0.22, 0.3, (r * math.cos(2.4) * 0.99, r * math.sin(2.4) * 0.99, h / 2 - 0.5), M["steel"], rot=(0, 0, 2.4))
     export(name)
 
 def engine_core(scale=1.0, exit_r=0.46, length=1.6, top=1.45, vacuum=False):
@@ -279,5 +299,5 @@ def nose():
         torus(ogive_r(zz) + 0.003, 0.008, zz - 3.0, M["grey"], 96)
     export("nose")
 
-for f in (engine_cluster4, lambda: tank("tank_8", 3.7, 8.0), lambda: tank("tank_10", 3.7, 10.0), lambda: tank("tank_16", 3.7, 16.0), lambda: tank("tank_32", 3.7, 32.0), lambda: tank("tank_s15", 3.05, 1.5), lambda: tank("tank_s30", 3.05, 3.0), engine_booster, engine_cluster9, engine_vacuum, srb, decoupler, radial_decoupler, adapter, interstage, nose):
+for f in (engine_cluster4, lambda: tank("tank_8", 3.7, 8.0), lambda: tank("tank_10", 3.7, 10.0, True), lambda: tank("tank_16", 3.7, 16.0), lambda: tank("tank_32", 3.7, 32.0), lambda: tank("tank_s15", 3.05, 1.5), lambda: tank("tank_s30", 3.05, 3.0), engine_booster, engine_cluster9, engine_vacuum, srb, decoupler, radial_decoupler, adapter, interstage, nose):
     f()

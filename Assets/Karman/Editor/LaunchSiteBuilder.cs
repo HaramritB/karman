@@ -91,38 +91,103 @@ namespace Karman.EditorTools
             gr.sharedMaterial = groundMat; gr.shadowCastingMode = ShadowCastingMode.Off; gr.receiveShadows = true;
             view.ground = gr;
 
-            var concrete = PbrMaterials.Triplanar("Site_Concrete", "concrete_floor_worn_001", new Color(0.92f, 0.91f, 0.88f), 8f, 0, 0.9f, 0.9f);
-            var darkConcrete = PbrMaterials.Triplanar("Site_ConcreteDark", "concrete_floor_worn_001", new Color(0.55f, 0.55f, 0.53f), 8f, 0, 0.95f, 0.9f);
-            var gravel = PbrMaterials.Triplanar("Site_Crawlerway", "gravel_road", new Color(0.95f, 0.92f, 0.86f), 5f, 0, 1f, 1f);
-            var steelRed = PbrMaterials.Triplanar("Site_TowerSteel", "metal_plate_02", new Color(0.62f, 0.64f, 0.67f), 2f, 0.85f, 0.6f, 0.6f, 0.5f, 0.8f);
-            var steelGrey = PbrMaterials.Triplanar("Site_SteelGrey", "metal_plate_02", new Color(0.42f, 0.43f, 0.45f), 2f, 0.9f, 0.6f, 0.6f, 0.5f, 0.8f);
-            var white = PbrMaterials.Triplanar("Site_PaintWhite", "metal_plate_02", new Color(0.9f, 0.9f, 0.88f), 3f, 0.1f, 0.6f, 0.4f, 0.2f, 1f);
-            var cladding = PbrMaterials.Triplanar("Site_Cladding", "box_profile_metal_sheet", new Color(0.86f, 0.87f, 0.88f), 3.2f, 0.5f, 0.8f, 1f, 0.6f, 0.7f);
+            var concrete = PbrMaterials.Triplanar("Site_Concrete", "concrete_floor_worn_001", new Color(2.1f, 2.04f, 1.95f), 8f, 0, 0.9f, 0.9f, space: 2);
+            var darkConcrete = PbrMaterials.Triplanar("Site_ConcreteDark", "concrete_floor_worn_001", new Color(1.6f, 1.56f, 1.5f), 8f, 0, 0.95f, 0.9f, space: 2);
+            var gravel = PbrMaterials.Triplanar("Site_Crawlerway", "gravel_road", new Color(2.4f, 2.5f, 2.6f), 5f, 0, 1f, 1f, 1f, 0.8f, space: 2);
+            var steelRed = PbrMaterials.Triplanar("Site_TowerSteel", "metal_plate_02", new Color(0.62f, 0.64f, 0.67f), 2f, 0.2f, 0.6f, 0.6f, 0.5f, 0.8f, space: 2);
+            var steelGrey = PbrMaterials.Triplanar("Site_SteelGrey", "metal_plate_02", new Color(0.55f, 0.56f, 0.58f), 2f, 0.2f, 0.6f, 0.6f, 0.5f, 0.8f, space: 2);
+            var white = PbrMaterials.Triplanar("Site_PaintWhite", "metal_plate_02", new Color(0.9f, 0.9f, 0.88f), 3f, 0.1f, 0.6f, 0.4f, 0.2f, 1f, space: 2);
+            var cladding = PbrMaterials.Triplanar("Site_Cladding", "box_profile_metal_sheet", new Color(0.86f, 0.87f, 0.88f), 3.2f, 0.5f, 0.8f, 1f, 0.6f, 0.7f, space: 2);
             var black = Lit("Site_Black", new Color(0.02f, 0.02f, 0.02f), 0.05f);
             var root = new GameObject("Pad").transform;
             root.SetParent(site.transform, false);
 
-            // Raised pad (LC-39A hardstand ~15 m above grade) with ramp and flame trench.
-            Box("Pad mound", new Vector3(0, 7.5f, 0), new Vector3(120, 15, 110), concrete, root);
-            Box("Pad apron", new Vector3(0, 0.05f, 0), new Vector3(200, 0.1f, 190), darkConcrete, root);
-            Box("Ramp", new Vector3(0, 7.5f, -95), new Vector3(30, 15, 85), concrete, root, new Vector3(-10f, 0, 0));
-            Box("Flame trench", new Vector3(0, 15.02f, 22), new Vector3(12, 0.05f, 70), black, root);
-            Box("Trench wall E", new Vector3(6.4f, 15.3f, 22), new Vector3(0.8f, 0.6f, 70), darkConcrete, root);
-            Box("Trench wall W", new Vector3(-6.4f, 15.3f, 22), new Vector3(0.8f, 0.6f, 70), darkConcrete, root);
+            // Raised pad (LC-39A hardstand, 15 m above grade): grassed slopes, concrete deck, a flame trench cut north
+            // through the mound with a deflector under the vehicle, a steel launch mount spanning the trench and a ramp.
+            var grassSlope = PbrMaterials.Triplanar("Site_GrassSlope", "sparse_grass", new Color(1.0f, 1.45f, 0.95f), 3f, 0, 1f, 1f, 1f, 0.6f, 2);
+            var sooty = PbrMaterials.Weathered(PbrMaterials.Triplanar("Site_TrenchConcrete", "concrete_floor_worn_001", new Color(1.5f, 1.45f, 1.4f), 6f, 0, 1f, 1f, 1f, 0.3f, 2), 0.9f, 3f, new Color(0.12f, 0.11f, 0.10f));
+            PbrMaterials.Weathered(concrete, 0.8f, 7f, new Color(0.42f, 0.4f, 0.36f));
+            concrete.SetFloat("_Panel", 6f);
+            PbrMaterials.Weathered(grassSlope, 0.9f, 10f, new Color(0.55f, 0.62f, 0.4f));
+            PbrMaterials.Weathered(darkConcrete, 0.5f, 6f, new Color(0.35f, 0.33f, 0.3f));
+            var mound = new MeshBuilder(new Vector3(0, 5, 0));
+            const float T = 15, dx = 60, dz = 55, run = 40, tw = 7;   // deck height, deck half-sizes, slope run, trench half-width
+            // Slopes (outward normals). North slope is split around the trench exit.
+            mound.Quad(new Vector3(-dx - run, 0, -dz - run), new Vector3(dx + run, 0, -dz - run), new Vector3(dx, T, -dz), new Vector3(-dx, T, -dz));
+            mound.Quad(new Vector3(dx + run, 0, -dz - run), new Vector3(dx + run, 0, dz + run), new Vector3(dx, T, dz), new Vector3(dx, T, -dz));
+            mound.Quad(new Vector3(-dx - run, 0, dz + run), new Vector3(-dx - run, 0, -dz - run), new Vector3(-dx, T, -dz), new Vector3(-dx, T, dz));
+            mound.Quad(new Vector3(dx + run, 0, dz + run), new Vector3(tw, 0, dz + run), new Vector3(tw, T, dz), new Vector3(dx, T, dz));
+            mound.Quad(new Vector3(-tw, 0, dz + run), new Vector3(-dx - run, 0, dz + run), new Vector3(-dx, T, dz), new Vector3(-tw, T, dz));
+            MeshBuilder.Save(mound, "PadMoundSlopes", grassSlope, root);
+            var deck = new MeshBuilder(new Vector3(0, -100, 0));
+            deck.Quad(new Vector3(-dx, T, -dz), new Vector3(-tw, T, -dz), new Vector3(-tw, T, dz), new Vector3(-dx, T, dz));
+            deck.Quad(new Vector3(tw, T, -dz), new Vector3(dx, T, -dz), new Vector3(dx, T, dz), new Vector3(tw, T, dz));
+            deck.Quad(new Vector3(-tw, T, -dz), new Vector3(tw, T, -dz), new Vector3(tw, T, -8), new Vector3(-tw, T, -8));
+            MeshBuilder.Save(deck, "PadDeck", concrete, root);
+            // Flame trench: floor falls from 4 m under the vehicle to grade at the exit; walls follow the deck then the slope.
+            float zEnd = dz + run;
+            var trench = new MeshBuilder(new Vector3(0, 9, 20), true);
+            trench.Quad(new Vector3(-tw, 4, -8), new Vector3(tw, 4, -8), new Vector3(tw, 0.3f, zEnd), new Vector3(-tw, 0.3f, zEnd));
+            // West wall faces +X, east wall faces -X: deck section then sloped section.
+            trench.Quad(new Vector3(-tw, 4, -8), new Vector3(-tw, 0.3f + 3.7f * (1 - (dz + 8) / (zEnd + 8)), dz), new Vector3(-tw, T, dz), new Vector3(-tw, T, -8));
+            trench.Tri(new Vector3(-tw, 0.3f + 3.7f * (1 - (dz + 8) / (zEnd + 8)), dz), new Vector3(-tw, 0.3f, zEnd), new Vector3(-tw, T, dz));
+            trench.Quad(new Vector3(tw, 4, -8), new Vector3(tw, T, -8), new Vector3(tw, T, dz), new Vector3(tw, 0.3f + 3.7f * (1 - (dz + 8) / (zEnd + 8)), dz));
+            trench.Tri(new Vector3(tw, 0.3f + 3.7f * (1 - (dz + 8) / (zEnd + 8)), dz), new Vector3(tw, T, dz), new Vector3(tw, 0.3f, zEnd));
+            trench.Quad(new Vector3(tw, 4, -8), new Vector3(-tw, 4, -8), new Vector3(-tw, T, -8), new Vector3(tw, T, -8));                           // south end wall (faces north)
+            trench.Quad(new Vector3(-tw, 12.5f, -7.9f), new Vector3(tw, 12.5f, -7.9f), new Vector3(tw, 4.2f, 9), new Vector3(-tw, 4.2f, 9));          // flame deflector
+            MeshBuilder.Save(trench, "PadFlameTrench", sooty, root);
+            // Ramp up the south slope from the crawlerway.
+            var ramp = new MeshBuilder(new Vector3(0, 2, -100));
+            float rz = -dz - 85;
+            ramp.Quad(new Vector3(-15, 0.02f, rz), new Vector3(15, 0.02f, rz), new Vector3(15, T + 0.02f, -dz), new Vector3(-15, T + 0.02f, -dz));
+            ramp.Tri(new Vector3(15, 0, rz), new Vector3(15, 0, -dz), new Vector3(15, T, -dz));
+            ramp.Tri(new Vector3(-15, 0, rz), new Vector3(-15, T, -dz), new Vector3(-15, 0, -dz));
+            MeshBuilder.Save(ramp, "PadRamp", concrete, root);
+
+            // Launch mount: two box girders across the trench, a square table frame and hold-down posts.
+            var mount = new GameObject("Launch Mount").transform; mount.SetParent(root, false);
+            Box("Girder N", new Vector3(0, T - 1.2f, 6.8f), new Vector3(2 * tw + 4, 2.4f, 2.2f), steelGrey, mount);
+            Box("Girder S", new Vector3(0, T - 1.2f, -6.8f), new Vector3(2 * tw + 4, 2.4f, 2.2f), steelGrey, mount);
+            Box("Table E", new Vector3(7.6f, T + 0.5f, 0), new Vector3(1.6f, 1.0f, 15.2f), steelGrey, mount);
+            Box("Table W", new Vector3(-7.6f, T + 0.5f, 0), new Vector3(1.6f, 1.0f, 15.2f), steelGrey, mount);
+            Box("Table N", new Vector3(0, T + 0.5f, 7.6f), new Vector3(13.6f, 1.0f, 1.6f), steelGrey, mount);
+            Box("Table S", new Vector3(0, T + 0.5f, -7.6f), new Vector3(13.6f, 1.0f, 1.6f), steelGrey, mount);
+            for (int k = 0; k < 4; k++)
+            {
+                float a = k * Mathf.PI / 2 + Mathf.PI / 4;
+                Box("Hold-down post", new Vector3(Mathf.Cos(a) * 6.2f, T + 1.4f, Mathf.Sin(a) * 6.2f), new Vector3(1.1f, 1.8f, 1.1f), steelGrey, mount);
+            }
+            // Sound-suppression water: header pipes along the deck and rainbird nozzles beside the trench.
+            var pipe = Cyl("Deluge main", new Vector3(-24, T + 0.9f, 0), 0.9f, 108, white, mount); pipe.transform.localEulerAngles = new Vector3(90, 0, 0);
+            var pipe2 = Cyl("Deluge feed", new Vector3(-15.5f, T + 0.9f, -12), 0.6f, 17, white, mount); pipe2.transform.localEulerAngles = new Vector3(0, 0, 90);
+            for (int k = 0; k < 3; k++)
+            {
+                float z = 14 + k * 12;
+                Cyl("Rainbird", new Vector3(-tw - 2.5f, T + 2.5f, z), 0.35f, 5, steelGrey, mount);
+                Cyl("Rainbird", new Vector3(tw + 2.5f, T + 2.5f, z), 0.35f, 5, steelGrey, mount);
+            }
+            // Deck edge kerb and railing posts.
+            Box("Kerb N", new Vector3(-33.5f, T + 0.25f, dz - 0.4f), new Vector3(53, 0.5f, 0.8f), darkConcrete, root);
+            Box("Kerb N2", new Vector3(33.5f, T + 0.25f, dz - 0.4f), new Vector3(53, 0.5f, 0.8f), darkConcrete, root);
+            Box("Kerb E", new Vector3(dx - 0.4f, T + 0.25f, 0), new Vector3(0.8f, 0.5f, 2 * dz), darkConcrete, root);
+            Box("Kerb W", new Vector3(-dx + 0.4f, T + 0.25f, 0), new Vector3(0.8f, 0.5f, 2 * dz), darkConcrete, root);
+            // Propellant storage spheres at grade (LOX north-west, LH2 north-east), as at LC-39A.
+            foreach (var (x, name) in new[] { (-150f, "LOX sphere"), (150f, "LH2 sphere") })
+            {
+                var sph = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                sph.name = name; sph.transform.SetParent(root, false); sph.transform.localPosition = new Vector3(x, 14, 70); sph.transform.localScale = Vector3.one * 20;
+                sph.GetComponent<Renderer>().sharedMaterial = white; Object.DestroyImmediate(sph.GetComponent<Collider>());
+                for (int k = 0; k < 8; k++) { float a = k * Mathf.PI / 4; Cyl("Sphere leg", new Vector3(x + Mathf.Cos(a) * 8.2f, 4.5f, 70 + Mathf.Sin(a) * 8.2f), 0.45f, 9, steelGrey, root); }
+                Box("Sphere plinth", new Vector3(x, 0.15f, 70), new Vector3(30, 0.3f, 30), darkConcrete, root);
+            }
             // Lightning protection: three masts with catenary wires around the pad.
             var mastPos = new[] { new Vector3(-45, 0, 40), new Vector3(45, 0, 40), new Vector3(0, 0, -55) };
-            foreach (var mp in mastPos) Cyl("Lightning mast", mp + Vector3.up * 70, 0.9f, 140, steelGrey, root);
+            foreach (var mp in mastPos) Cyl("Lightning mast", mp + Vector3.up * 70, 0.5f, 140, steelGrey, root);
             for (int k = 0; k < 3; k++)
             {
                 Vector3 a0 = mastPos[k] + Vector3.up * 140, b0 = mastPos[(k + 1) % 3] + Vector3.up * 140;
                 var wire = Cyl("Catenary", (a0 + b0) / 2 - Vector3.up * 6, 0.06f, Vector3.Distance(a0, b0), steelGrey, root);
                 wire.transform.up = (b0 - a0).normalized;
-            }
-            Box("Exhaust opening", new Vector3(0, 15.03f, 0), new Vector3(11, 0.05f, 11), black, root);
-            for (int k = 0; k < 4; k++)
-            {
-                float a = k * Mathf.PI / 2 + Mathf.PI / 4;
-                Box("Hold-down post", new Vector3(Mathf.Cos(a) * 4.2f, 16.0f, Mathf.Sin(a) * 4.2f), new Vector3(1.0f, 2.0f, 1.0f), steelGrey, root);
             }
 
             // Fixed service structure west of the vehicle: lattice tower, access arms, lightning mast.
@@ -148,7 +213,7 @@ namespace Karman.EditorTools
 
             // Crawlerway to the south and a processing hangar.
             Box("Crawlerway", new Vector3(0, 0.08f, -1300), new Vector3(40, 0.12f, 2400), gravel, root);
-            Box("Crawlerway median", new Vector3(0, 0.1f, -1300), new Vector3(12, 0.12f, 2400), PbrMaterials.Triplanar("Site_Median", "sparse_grass", new Color(0.8f, 0.85f, 0.7f), 3f), root);
+            Box("Crawlerway median", new Vector3(0, 0.1f, -1300), new Vector3(12, 0.12f, 2400), PbrMaterials.Triplanar("Site_Median", "sparse_grass", new Color(1.0f, 1.45f, 0.95f), 3f, 0, 1f, 1f, 1f, 0.6f, space: 2), root);
             Box("Processing hangar", new Vector3(140, 18, -320), new Vector3(110, 36, 60), cladding, root);
             Box("Hangar door", new Vector3(140, 14, -289.9f), new Vector3(70, 28, 0.3f), steelGrey, root);
 

@@ -24,28 +24,32 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _ArmMap:
-        m_Texture: {fileID: 2800000, guid: d5203c9026be34db4a0c82608ab7b9d1, type: 3}
+        m_Texture: {fileID: 2800000, guid: bc3884a6d44954352aacadd5ca8decff, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: f9c185ac728884ba4a716c0f325f8607, type: 3}
+        m_Texture: {fileID: 2800000, guid: 867321c0535e94fde81d4cdb17c8467b, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: edb97f47d8df440c7997276cbbd20cee, type: 3}
+        m_Texture: {fileID: 2800000, guid: df5cd14bbfa6c4082bde6bc137180014, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AlbedoStrength: 0.8
+    - _AlbedoStrength: 1
     - _Cull: 2
-    - _Desaturate: 0.8
-    - _Metallic: 0.6
+    - _Desaturate: 0.5
+    - _Grime: 0
+    - _GrimeScale: 6
+    - _Metallic: 0.1
     - _NormalStrength: 1
     - _ObjectSpace: 0
+    - _Panel: 0
     - _Roughness: 0.8
     - _Tiling: 3.2
     m_Colors:
-    - _BaseColor: {r: 0.18, g: 0.19, b: 0.21, a: 1}
+    - _BaseColor: {r: 1.1, g: 1.12, b: 1.18, a: 1}
+    - _GrimeColor: {r: 0.31999996, g: 0.29999998, b: 0.26999995, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

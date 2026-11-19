@@ -45,22 +45,23 @@ namespace Karman.EditorTools
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             PbrMaterials.EnsureSsao();
-            var floor = PbrMaterials.Triplanar("VAB_Floor", "hangar_concrete_floor", new Color(0.82f, 0.82f, 0.8f), 7f, 0, 0.75f, 0.8f);
-            var cladding = PbrMaterials.Triplanar("VAB_Cladding", "box_profile_metal_sheet", new Color(0.62f, 0.64f, 0.67f), 3.2f, 0.6f, 0.8f, 1f, 0.8f, 0.6f);
-            var cladDark = PbrMaterials.Triplanar("VAB_CladdingDark", "box_profile_metal_sheet", new Color(0.18f, 0.19f, 0.21f), 3.2f, 0.6f, 0.8f, 1f, 0.8f, 0.8f);
+            var floor = PbrMaterials.Triplanar("VAB_Floor", "hangar_concrete_floor", new Color(0.62f, 0.63f, 0.64f), 7f, 0, 0.55f, 0.6f, 0.45f, 0.5f);
+            floor.SetFloat("_Panel", 4f);
+            var cladding = PbrMaterials.Triplanar("VAB_Cladding", "painted_metal_shutter", new Color(2.7f, 2.75f, 2.85f), 3.2f, 0.1f, 0.7f, 1f, 1f, 0.4f);
+            var cladDark = PbrMaterials.Triplanar("VAB_CladdingDark", "painted_metal_shutter", new Color(1.1f, 1.12f, 1.18f), 3.2f, 0.1f, 0.8f, 1f, 1f, 0.5f);
             var steel = PbrMaterials.Triplanar("VAB_Steel", "metal_plate_02", new Color(0.55f, 0.57f, 0.6f), 2f, 0.9f, 0.6f, 0.6f, 0.6f, 0.8f);
-            var darkSteel = PbrMaterials.Triplanar("VAB_DarkSteel", "metal_plate_02", new Color(0.13f, 0.135f, 0.145f), 2f, 0.8f, 0.7f, 0.6f, 0.6f, 0.8f);
+            var darkSteel = PbrMaterials.Triplanar("VAB_DarkSteel", "metal_plate_02", new Color(0.36f, 0.37f, 0.4f), 2f, 0.25f, 0.7f, 0.6f, 0.5f, 0.8f);
             var paint = PbrMaterials.Triplanar("VAB_SafetyPaint", "metal_plate_02", new Color(0.85f, 0.62f, 0.12f), 1.5f, 0.2f, 0.7f, 0.4f, 0.3f, 1f);
-            var panelLight = Lit("VAB_LightPanel", Color.black, 0.5f, 0, new Color(2.2f, 2.3f, 2.4f));
-            var floorLine = Lit("VAB_FloorLine", new Color(0.25f, 0.26f, 0.27f), 0.35f);
+            var panelLight = Lit("VAB_LightPanel", Color.black, 0.5f, 0, new Color(4.5f, 4.6f, 4.8f));
+            var floorLine = Lit("VAB_FloorLine", new Color(0.75f, 0.55f, 0.1f), 0.35f);
 
             RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.34f, 0.37f, 0.42f);
-            RenderSettings.ambientEquatorColor = new Color(0.22f, 0.23f, 0.25f);
-            RenderSettings.ambientGroundColor = new Color(0.12f, 0.12f, 0.13f);
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Exponential; RenderSettings.fogDensity = 0.0012f;
-            RenderSettings.fogColor = new Color(0.16f, 0.17f, 0.19f);
+            RenderSettings.ambientSkyColor = new Color(0.62f, 0.65f, 0.7f);
+            RenderSettings.ambientEquatorColor = new Color(0.48f, 0.5f, 0.53f);
+            RenderSettings.ambientGroundColor = new Color(0.3f, 0.3f, 0.31f);
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Exponential; RenderSettings.fogDensity = 0.0007f;
+            RenderSettings.fogColor = new Color(0.62f, 0.65f, 0.69f);
 
             var hall = new GameObject("Assembly Hall").transform;
             const float W = 240, H = 210, D = 240;
@@ -136,11 +137,19 @@ namespace Karman.EditorTools
             fill.transform.rotation = Quaternion.Euler(55, -30, 0);
             fill.shadows = LightShadows.Soft;
 
+            // Reflections of the bright hall on paint and metal (rendered once on load).
+            var probe = new GameObject("Hall Reflection Probe").AddComponent<ReflectionProbe>();
+            probe.transform.position = new Vector3(0, 50, 30);
+            probe.mode = UnityEngine.Rendering.ReflectionProbeMode.Realtime;
+            probe.refreshMode = UnityEngine.Rendering.ReflectionProbeRefreshMode.OnAwake;
+            probe.resolution = 256; probe.hdr = true; probe.size = new Vector3(W, H * 2, D); probe.boxProjection = false;
+            probe.cullingMask = ~0;
+
             // Craft root and VAB tools.
             var craftRoot = new GameObject("Craft").transform;
             var camGo = new GameObject("VAB Camera"); camGo.tag = "MainCamera";
             var cam = camGo.AddComponent<Camera>();
-            cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.05f, 0.055f, 0.065f);
+            cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.62f, 0.65f, 0.69f);
             cam.nearClipPlane = 0.3f; cam.farClipPlane = 1500; cam.fieldOfView = 45; cam.allowHDR = true;
             camGo.AddComponent<UniversalAdditionalCameraData>().renderPostProcessing = true;
             camGo.AddComponent<AudioListener>();
@@ -153,7 +162,7 @@ namespace Karman.EditorTools
             var ghostBad = KarmanSetup.Mat("VAB_GhostBad", "Karman/Line"); ghostBad.SetColor("_Color", new Color(1f, 0.3f, 0.25f, 0.4f));
             var sel = KarmanSetup.Mat("VAB_Selection", "Karman/Line"); sel.SetColor("_Color", new Color(0.36f, 0.78f, 1f, 0.28f));
             vab.ghostOk = ghostOk; vab.ghostBad = ghostBad; vab.selectionMaterial = sel;
-            vab.interstageMaterial = PbrMaterials.Triplanar("Interstage", "metal_plate_02", new Color(0.9f, 0.9f, 0.89f), 2.4f, 0.05f, 0.6f, 0.35f, 0.12f, 1, true);
+            vab.interstageMaterial = PbrMaterials.Triplanar("Interstage", "metal_plate_02", new Color(0.055f, 0.055f, 0.06f), 0.6f, 0.0f, 0.5f, 0.35f, 0.3f, 1, 1);
             vab.comMarker = Marker("Centre of mass", new Color(1f, 0.85f, 0.2f, 0.95f), craftRoot);
             vab.cotMarker = Marker("Centre of thrust", new Color(1f, 0.3f, 0.9f, 0.95f), craftRoot);
 

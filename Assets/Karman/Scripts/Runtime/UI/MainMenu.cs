@@ -16,10 +16,11 @@ namespace Karman.UI
         {
             var root = GetComponent<UIDocument>().rootVisualElement;
             root.Clear();
+            HudStyle.ApplyFont(root);
             var col = new VisualElement();
-            col.style.position = Position.Absolute; col.style.left = 110; col.style.top = Length.Percent(28);
-            var title = new Label("KÁRMÁN"); title.style.color = HudStyle.Text; title.style.fontSize = 76; title.style.letterSpacing = 22; title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            var tag = new Label("BUILD.  LAUNCH.  EXPLORE."); tag.style.color = HudStyle.Accent; tag.style.fontSize = 15; tag.style.letterSpacing = 8; tag.style.marginBottom = 46; tag.style.marginLeft = 4;
+            col.style.position = Position.Absolute; col.style.left = 110; col.style.top = Length.Percent(18);
+            var title = HudStyle.Weight(new Label("KÁRMÁN"), HudStyle.SemiBold); title.style.color = HudStyle.Text; title.style.fontSize = 64; title.style.letterSpacing = 18;
+            var tag = HudStyle.Weight(new Label("BUILD.  LAUNCH.  EXPLORE."), HudStyle.Medium); tag.style.color = HudStyle.Accent; tag.style.fontSize = 13; tag.style.letterSpacing = 7; tag.style.marginBottom = 36; tag.style.marginLeft = 4;
             col.Add(title); col.Add(tag);
             col.Add(MenuButton("Vehicle Assembly Building", "Design a launcher from real-hardware-based parts", () => SceneManager.LoadScene("VAB")));
             col.Add(MenuButton("Orbit Sandbox", "Fly a Gemini spacecraft in low Earth orbit", () => Start(Karman.Simulation.Scenario.OrbitSandbox)));
@@ -39,7 +40,7 @@ namespace Karman.UI
             Karman.Audio.UiSound.PlayAmbient(true);
             root.Add(col);
             var foot = new Label("Early development build · Earth, Moon and planets at their real positions for the current date");
-            foot.style.position = Position.Absolute; foot.style.left = 114; foot.style.bottom = 40; foot.style.color = HudStyle.Dim; foot.style.fontSize = 12;
+            foot.style.position = Position.Absolute; foot.style.left = 114; foot.style.bottom = 28; foot.style.color = HudStyle.Faint; foot.style.fontSize = 11;
             root.Add(foot);
         }
 
@@ -85,14 +86,18 @@ namespace Karman.UI
             var b = new Button(a);
             b.clicked += Karman.Audio.UiSound.Click;
             b.style.flexDirection = FlexDirection.Column; b.style.alignItems = Align.FlexStart;
-            b.style.width = 420; b.style.marginBottom = 10; b.style.paddingLeft = 18; b.style.paddingTop = 12; b.style.paddingBottom = 12;
-            b.style.backgroundColor = HudStyle.Panel;
-            b.style.borderTopLeftRadius = b.style.borderTopRightRadius = b.style.borderBottomLeftRadius = b.style.borderBottomRightRadius = 10;
-            b.style.borderLeftWidth = 3; b.style.borderLeftColor = HudStyle.Accent;
-            b.style.borderTopWidth = b.style.borderBottomWidth = b.style.borderRightWidth = 0;
-            var t = new Label(title); t.style.color = HudStyle.Text; t.style.fontSize = 18; t.style.unityFontStyleAndWeight = FontStyle.Bold;
+            b.style.width = 400; b.style.marginBottom = 4; b.style.paddingLeft = 16; b.style.paddingTop = 9; b.style.paddingBottom = 9;
+            b.style.marginLeft = 0;
+            var idle = new Color(0.03f, 0.04f, 0.055f, 0.45f);
+            b.style.backgroundColor = idle;
+            HudStyle.Radius(b, 10);
+            HudStyle.Border(b, 0, Color.clear);
+            b.style.borderLeftWidth = 2; b.style.borderLeftColor = new Color(1, 1, 1, 0.08f);
+            b.RegisterCallback<MouseEnterEvent>(_ => { b.style.backgroundColor = new Color(0.06f, 0.09f, 0.12f, 0.8f); b.style.borderLeftColor = HudStyle.Accent; });
+            b.RegisterCallback<MouseLeaveEvent>(_ => { b.style.backgroundColor = idle; b.style.borderLeftColor = new Color(1, 1, 1, 0.08f); });
+            var t = HudStyle.Weight(new Label(title), HudStyle.Medium); t.style.color = HudStyle.Text; t.style.fontSize = 16;
             b.Add(t);
-            if (sub.Length > 0) { var s = new Label(sub); s.style.color = HudStyle.Dim; s.style.fontSize = 12; b.Add(s); }
+            if (sub.Length > 0) { var s = new Label(sub); s.style.color = HudStyle.Dim; s.style.fontSize = 11; s.style.marginTop = 1; b.Add(s); }
             return b;
         }
 

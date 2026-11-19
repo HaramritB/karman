@@ -88,6 +88,8 @@ namespace Karman.Rendering
             Matrix3d m = earth.Orientation * enuToBody;
             // Local axes: X east, Y up, Z north (already Unity-style), so map columns directly.
             transform.rotation = Quaternion.LookRotation(Coords.ToUnity(m.Column(2)), Coords.ToUnity(m.Column(1)));
+            // Pad materials project their textures in this frame so they stay put under the floating origin.
+            Shader.SetGlobalMatrix("_KarmanSiteW2L", transform.worldToLocalMatrix);
             var sun = SimulationController.Instance.System.Sun;
             if (ground) ground.sharedMaterial.SetVector("_SunDir", Coords.ToUnity((sun.Position - helio).normalized));
         }

@@ -50,6 +50,8 @@ namespace Karman.UI
             disc = new VisualElement();
             disc.style.width = 230; disc.style.height = 230;
             disc.style.backgroundImage = Background.FromRenderTexture(rt);
+            HudStyle.Radius(disc, 115);
+            HudStyle.Border(disc, 3, new Color(0.02f, 0.025f, 0.035f, 0.85f));
             root.Add(disc);
             markers = new Label[markerStyles.Length];
             for (int i = 0; i < markers.Length; i++)
@@ -64,11 +66,11 @@ namespace Karman.UI
                 l.style.backgroundColor = new Color(0, 0, 0, 0.35f);
                 markers[i] = l; root.Add(l);
             }
-            var cross = new Label("—  ✕  —"); cross.style.position = Position.Absolute; cross.style.left = 0; cross.style.right = 0; cross.style.top = 104;
+            var cross = new Label("——  •  ——"); cross.style.position = Position.Absolute; cross.style.left = 0; cross.style.right = 0; cross.style.top = 104;
             cross.style.unityTextAlign = TextAnchor.MiddleCenter; cross.style.color = new Color(1, 0.6f, 0.1f); cross.style.fontSize = 14; cross.style.unityFontStyleAndWeight = FontStyle.Bold;
             root.Add(cross);
             heading = new Label(); heading.style.position = Position.Absolute; heading.style.top = -20; heading.style.left = 0; heading.style.right = 0;
-            heading.style.unityTextAlign = TextAnchor.MiddleCenter; heading.style.color = HudStyle.Text; heading.style.fontSize = 13;
+            heading.style.unityTextAlign = TextAnchor.MiddleCenter; heading.style.color = HudStyle.Dim; heading.style.fontSize = 11; heading.style.letterSpacing = 1.2f;
             root.Add(heading);
             return root;
         }

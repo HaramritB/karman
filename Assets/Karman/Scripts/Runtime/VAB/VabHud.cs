@@ -4,20 +4,24 @@ using Karman.Core.Vehicles;
 using Karman.Persistence;
 using Karman.UI;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 namespace Karman.VAB
 {
-    /// <summary>VAB interface: part catalogue with search, engineering readouts, staging editor, file commands.</summary>
+    /// <summary>
+    /// VAB interface. A slim top bar (file, edit, symmetry, templates, launch), a compact parts list with category
+    /// pills and search (full specs appear in a detail strip on hover), and an engineering column with three key
+    /// figures and a collapsible staging editor. The vehicle stays the centre of the screen.
+    /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class VabHud : MonoBehaviour
     {
         public VabController vab;
-        VisualElement root, catalog, readouts, staging, loadPanel, leftPanel, rightPanel, topBar;
+        VisualElement root, catalog, readouts, staging, stagingBody, loadPanel, templates, leftPanel, rightPanel, topBar, cats;
         TextField nameField, search;
-        Label symLabel, status, heldLabel;
+        Label symLabel, status, detailTitle, detailSpec, detailRef, stageToggle, dvTile, twrTile, massTile;
         PartCategory? filter;
+        bool stagingOpen = true, markers;
 
         void Start()
         {
@@ -25,6 +29,7 @@ namespace Karman.VAB
             Build();
             vab.Changed += Refresh;
             vab.IsPointerOverUi = OverUi;
+            SetMarkers(false);
         }
 
         void OnDisable() { if (vab) vab.Changed -= Refresh; }
@@ -38,94 +43,209 @@ namespace Karman.VAB
             return picked != null && picked != root;
         }
 
-        static Button Btn(string text, System.Action a, float w = 0)
+        static Button Btn(string text, System.Action a, bool ghost = true)
         {
             var b = new Button(a) { text = text };
             b.clicked += Karman.Audio.UiSound.Click;
-            b.style.backgroundColor = new Color(1, 1, 1, 0.06f);
+            HudStyle.Weight(b, HudStyle.Medium);
+            Color idle = ghost ? new Color(1, 1, 1, 0f) : new Color(1, 1, 1, 0.07f);
+            b.style.backgroundColor = idle;
             b.style.color = HudStyle.Text; b.style.fontSize = 12;
-            b.style.borderTopWidth = b.style.borderBottomWidth = b.style.borderLeftWidth = b.style.borderRightWidth = 1;
-            var bc = new Color(1, 1, 1, 0.12f);
-            b.style.borderTopColor = b.style.borderBottomColor = b.style.borderLeftColor = b.style.borderRightColor = bc;
-            b.style.borderTopLeftRadius = b.style.borderTopRightRadius = b.style.borderBottomLeftRadius = b.style.borderBottomRightRadius = 6;
-            b.style.paddingLeft = 10; b.style.paddingRight = 10; b.style.paddingTop = 5; b.style.paddingBottom = 5;
-            b.style.marginLeft = 3; b.style.marginRight = 3;
-            if (w > 0) b.style.width = w;
+            HudStyle.Border(b, ghost ? 0 : 1, new Color(1, 1, 1, 0.1f));
+            HudStyle.Radius(b, 8);
+            b.style.paddingLeft = 10; b.style.paddingRight = 10; b.style.paddingTop = 6; b.style.paddingBottom = 6;
+            b.style.marginLeft = 1; b.style.marginRight = 1;
+            b.RegisterCallback<MouseEnterEvent>(_ => b.style.backgroundColor = new Color(1, 1, 1, 0.12f));
+            b.RegisterCallback<MouseLeaveEvent>(_ => b.style.backgroundColor = idle);
             return b;
         }
+
+        static VisualElement Divider()
+        {
+            var d = new VisualElement(); d.style.width = 1; d.style.height = 18; d.style.marginLeft = 8; d.style.marginRight = 8;
+            d.style.backgroundColor = new Color(1, 1, 1, 0.12f);
+            return d;
+        }
+
+        static void StyleField(TextField f, string placeholder)
+        {
+            var input = f.Q(TextField.textInputUssName);
+            if (input != null)
+            {
+                input.style.backgroundColor = new Color(1, 1, 1, 0.06f);
+                HudStyle.Border(input, 1, new Color(1, 1, 1, 0.1f));
+                HudStyle.Radius(input, 8);
+                input.style.color = HudStyle.Text; input.style.paddingLeft = 10; input.style.paddingTop = 5; input.style.paddingBottom = 5;
+                if (HudStyle.Medium != null) input.style.unityFontDefinition = FontDefinition.FromFont(HudStyle.Medium);
+            }
+            f.style.marginLeft = 0; f.style.marginRight = 0;
+            f.textEdition.placeholder = placeholder;
+        }
+
+        static string ShortName(PartCategory c) => c switch
+        {
+            PartCategory.Command => "Pods",
+            PartCategory.Propellant => "Tanks",
+            PartCategory.Engine => "Engines",
+            PartCategory.Coupling => "Coupling",
+            PartCategory.Structural => "Structure",
+            PartCategory.Aerodynamic => "Aero",
+            _ => c.ToString(),
+        };
 
         void Build()
         {
             root.Clear();
-            // Top bar
-            topBar = HudStyle.PanelBox(1180);
-            topBar.style.position = Position.Absolute; topBar.style.top = 14; topBar.style.left = Length.Percent(50); topBar.style.translate = new Translate(Length.Percent(-50), 0);
-            topBar.style.flexDirection = FlexDirection.Row; topBar.style.alignItems = Align.Center; topBar.style.paddingTop = 6; topBar.style.paddingBottom = 6;
-            var brand = new Label("KÁRMÁN  ·  VEHICLE ASSEMBLY"); brand.style.color = HudStyle.Text; brand.style.fontSize = 13; brand.style.letterSpacing = 3; brand.style.unityFontStyleAndWeight = FontStyle.Bold; brand.style.marginRight = 14;
-            topBar.Add(brand);
-            nameField = new TextField { value = vab.Craft.Name }; nameField.style.width = 260;
+            HudStyle.ApplyFont(root);
+
+            // ---- Top bar
+            topBar = new VisualElement();
+            topBar.style.position = Position.Absolute; topBar.style.top = 16; topBar.style.left = 20; topBar.style.right = 20;
+            topBar.style.flexDirection = FlexDirection.Row; topBar.style.alignItems = Align.Center;
+            topBar.style.backgroundColor = HudStyle.Panel; HudStyle.Radius(topBar, 14); HudStyle.Pad(topBar, 14, 7);
+            HudStyle.Border(topBar, 1, new Color(1, 1, 1, 0.07f));
+            var brand = HudStyle.Weight(new Label("KÁRMÁN"), HudStyle.SemiBold); brand.style.color = HudStyle.Text; brand.style.fontSize = 13; brand.style.letterSpacing = 4;
+            var sub = HudStyle.Caption("VEHICLE ASSEMBLY", HudStyle.Dim); sub.style.marginLeft = 10;
+            topBar.Add(brand); topBar.Add(sub); topBar.Add(Divider());
+            nameField = new TextField { value = vab.Craft.Name }; nameField.style.width = 280;
+            StyleField(nameField, "Vehicle name");
             nameField.RegisterValueChangedCallback(e => vab.Rename(e.newValue));
             topBar.Add(nameField);
+            topBar.Add(Divider());
             topBar.Add(Btn("New", vab.NewCraft));
-            topBar.Add(Btn("Sample", vab.LoadSample));
+            topBar.Add(Btn("Open", ToggleLoad));
             topBar.Add(Btn("Save", () => vab.Save()));
-            topBar.Add(Btn("Load", ToggleLoad));
+            topBar.Add(Divider());
             topBar.Add(Btn("Undo", vab.Undo));
             topBar.Add(Btn("Redo", vab.Redo));
-            symLabel = new Label(); symLabel.style.color = HudStyle.Accent; symLabel.style.marginLeft = 6; symLabel.style.marginRight = 2;
-            topBar.Add(Btn("Symmetry", vab.CycleSymmetry)); topBar.Add(symLabel);
+            topBar.Add(Divider());
+            var sym = Btn("Symmetry", vab.CycleSymmetry);
+            symLabel = HudStyle.Chip("×1", HudStyle.Accent); symLabel.pickingMode = PickingMode.Ignore;
+            sym.Add(symLabel); sym.style.flexDirection = FlexDirection.Row; sym.style.alignItems = Align.Center;
+            topBar.Add(sym);
+            topBar.Add(Btn("CoM / CoT", () => SetMarkers(!markers)));
             var spacer = new VisualElement(); spacer.style.flexGrow = 1; topBar.Add(spacer);
-            topBar.Add(Btn("Moon rocket", () => vab.LoadLunarSample()));
-            var launch = Btn("LAUNCH ▸", vab.Launch);
-            launch.style.backgroundColor = new Color(0.36f, 0.78f, 1f, 0.85f); launch.style.color = new Color(0.02f, 0.05f, 0.08f);
-            launch.style.unityFontStyleAndWeight = FontStyle.Bold;
+            topBar.Add(Btn("Templates", ToggleTemplates, false));
+            var launch = new Button(vab.Launch) { text = "Launch" };
+            launch.clicked += Karman.Audio.UiSound.Click;
+            HudStyle.Weight(launch, HudStyle.SemiBold);
+            launch.style.backgroundColor = HudStyle.Accent; launch.style.color = new Color(0.02f, 0.05f, 0.08f); launch.style.fontSize = 13;
+            HudStyle.Border(launch, 0, Color.clear); HudStyle.Radius(launch, 9); HudStyle.Pad(launch, 20, 7); launch.style.marginLeft = 8;
             topBar.Add(launch);
             root.Add(topBar);
 
-            // Left: catalogue
-            leftPanel = HudStyle.PanelBox(300);
-            leftPanel.style.position = Position.Absolute; leftPanel.style.left = 18; leftPanel.style.top = 74; leftPanel.style.bottom = 18;
-            leftPanel.Add(HudStyle.Title("PARTS"));
-            search = new TextField(); search.RegisterValueChangedCallback(_ => FillCatalog());
-            leftPanel.Add(search);
-            var cats = new VisualElement(); cats.style.flexDirection = FlexDirection.Row; cats.style.flexWrap = Wrap.Wrap; cats.style.marginTop = 6; cats.style.marginBottom = 6;
-            cats.Add(Btn("All", () => { filter = null; FillCatalog(); }));
-            foreach (PartCategory c in System.Enum.GetValues(typeof(PartCategory)))
+            templates = HudStyle.PanelBox(260);
+            templates.style.backgroundColor = HudStyle.PanelSolid;
+            templates.style.position = Position.Absolute; templates.style.top = 66; templates.style.right = 120;
+            templates.Add(HudStyle.Title("START FROM"));
+            void Tpl(string t, string d, System.Action a)
             {
-                var cc = c;
-                if (vab.Definitions.Any(d => d.Category == cc)) cats.Add(Btn(c.ToString(), () => { filter = cc; FillCatalog(); }));
+                var b = Btn(t, () => { a(); templates.style.display = DisplayStyle.None; });
+                b.style.flexDirection = FlexDirection.Column; b.style.alignItems = Align.FlexStart; b.style.marginBottom = 4;
+                var dl = new Label(d); dl.style.color = HudStyle.Dim; dl.style.fontSize = 11; dl.style.whiteSpace = WhiteSpace.Normal;
+                b.Add(dl); templates.Add(b);
             }
+            Tpl("Kármán I", "Two-stage Gemini launcher", vab.LoadSample);
+            Tpl("Kármán V", "Heavy lift with lunar lander and transfer stage", () => vab.LoadLunarSample());
+            templates.style.display = DisplayStyle.None;
+            root.Add(templates);
+
+            // ---- Parts (left)
+            leftPanel = HudStyle.PanelBox(272);
+            leftPanel.style.position = Position.Absolute; leftPanel.style.left = 20; leftPanel.style.top = 74; leftPanel.style.bottom = 20;
+            leftPanel.Add(HudStyle.Title("PARTS"));
+            search = new TextField(); StyleField(search, "Search parts");
+            search.RegisterValueChangedCallback(_ => FillCatalog());
+            leftPanel.Add(search);
+            cats = new VisualElement(); cats.style.flexDirection = FlexDirection.Row; cats.style.flexWrap = Wrap.Wrap; cats.style.marginTop = 8; cats.style.marginBottom = 6;
             leftPanel.Add(cats);
-            var scroll = new ScrollView(); scroll.style.flexGrow = 1;
+            FillCats();
+            var scroll = new ScrollView(); scroll.style.flexGrow = 1; HudStyle.SlimScroll(scroll);
             catalog = scroll.contentContainer;
             leftPanel.Add(scroll);
-            heldLabel = new Label(); heldLabel.style.color = HudStyle.Warn; heldLabel.style.fontSize = 12; heldLabel.style.whiteSpace = WhiteSpace.Normal;
-            leftPanel.Add(heldLabel);
+            var detail = new VisualElement(); detail.style.borderTopWidth = 1; detail.style.borderTopColor = HudStyle.Rule; detail.style.paddingTop = 10; detail.style.marginTop = 6;
+            detailTitle = HudStyle.Value("", 13);
+            detailSpec = new Label(); detailSpec.style.color = HudStyle.Dim; detailSpec.style.fontSize = 11; detailSpec.style.whiteSpace = WhiteSpace.Normal; detailSpec.style.marginTop = 2;
+            detailRef = new Label(); detailRef.style.color = HudStyle.Faint; detailRef.style.fontSize = 11; detailRef.style.whiteSpace = WhiteSpace.Normal; detailRef.style.marginTop = 4;
+            detail.Add(detailTitle); detail.Add(detailSpec); detail.Add(detailRef);
+            leftPanel.Add(detail);
             root.Add(leftPanel);
             FillCatalog();
 
-            // Right: readouts + staging
-            rightPanel = HudStyle.PanelBox(330);
-            rightPanel.style.position = Position.Absolute; rightPanel.style.right = 18; rightPanel.style.top = 74; rightPanel.style.bottom = 18;
+            // ---- Engineering (right)
+            rightPanel = HudStyle.PanelBox(300);
+            rightPanel.style.position = Position.Absolute; rightPanel.style.right = 20; rightPanel.style.top = 74; rightPanel.style.bottom = 20;
             rightPanel.Add(HudStyle.Title("ENGINEERING"));
+            var tiles = new VisualElement(); tiles.style.flexDirection = FlexDirection.Row; tiles.style.marginBottom = 8;
+            VisualElement Tile(string cap, out Label value)
+            {
+                var t = new VisualElement(); t.style.flexGrow = 1; t.style.flexBasis = 0; t.style.marginRight = 6;
+                t.style.backgroundColor = new Color(1, 1, 1, 0.045f); HudStyle.Radius(t, 10); HudStyle.Pad(t, 10, 8);
+                var caption = HudStyle.Caption(cap); value = HudStyle.Value("—", 17);
+                t.Add(caption); t.Add(value); return t;
+            }
+            tiles.Add(Tile("Δv VAC", out dvTile));
+            tiles.Add(Tile("LIFT-OFF TWR", out twrTile));
+            var mt = Tile("MASS", out massTile); mt.style.marginRight = 0; tiles.Add(mt);
+            rightPanel.Add(tiles);
             readouts = new VisualElement(); rightPanel.Add(readouts);
-            var st = HudStyle.Title("STAGING  ·  fires top to bottom"); st.style.marginTop = 12; rightPanel.Add(st);
-            var stageBtns = new VisualElement(); stageBtns.style.flexDirection = FlexDirection.Row;
-            stageBtns.Add(Btn("▲ earlier", () => vab.ShiftStage(1))); stageBtns.Add(Btn("▼ later", () => vab.ShiftStage(-1))); stageBtns.Add(Btn("Auto", vab.ResetStaging));
-            rightPanel.Add(stageBtns);
-            var sscroll = new ScrollView(); sscroll.style.flexGrow = 1; staging = sscroll.contentContainer;
+            var stHead = new VisualElement(); stHead.style.flexDirection = FlexDirection.Row; stHead.style.alignItems = Align.Center; stHead.style.marginTop = 14;
+            stageToggle = HudStyle.Title("STAGING"); stageToggle.style.marginBottom = 0; stageToggle.style.flexGrow = 1;
+            stageToggle.RegisterCallback<ClickEvent>(_ => { stagingOpen = !stagingOpen; Refresh(); });
+            stHead.Add(stageToggle);
+            stHead.Add(Btn("▲", () => vab.ShiftStage(1))); stHead.Add(Btn("▼", () => vab.ShiftStage(-1))); stHead.Add(Btn("Auto", vab.ResetStaging));
+            rightPanel.Add(stHead);
+            var sscroll = new ScrollView(); sscroll.style.flexGrow = 1; HudStyle.SlimScroll(sscroll); staging = sscroll.contentContainer; stagingBody = sscroll;
             rightPanel.Add(sscroll);
             root.Add(rightPanel);
 
-            status = new Label(); status.style.position = Position.Absolute; status.style.bottom = 22; status.style.left = 340; status.style.right = 370;
-            status.style.unityTextAlign = TextAnchor.MiddleCenter; status.style.color = HudStyle.Dim; status.style.fontSize = 12;
+            // ---- Hint / status strip (bottom centre)
+            status = new Label(); status.style.position = Position.Absolute; status.style.bottom = 26; status.style.left = 320; status.style.right = 340;
+            status.style.unityTextAlign = TextAnchor.MiddleCenter; status.style.color = HudStyle.Text; status.style.fontSize = 12;
+            status.style.whiteSpace = WhiteSpace.Normal;
+            HudStyle.Shadow(status); status.pickingMode = PickingMode.Ignore;
             root.Add(status);
 
-            loadPanel = HudStyle.PanelBox(420);
+            loadPanel = HudStyle.PanelBox(380);
+            loadPanel.style.backgroundColor = HudStyle.PanelSolid;
             loadPanel.style.position = Position.Absolute; loadPanel.style.top = 74; loadPanel.style.left = Length.Percent(50); loadPanel.style.translate = new Translate(Length.Percent(-50), 0);
             loadPanel.style.display = DisplayStyle.None;
             root.Add(loadPanel);
             Refresh();
+        }
+
+        void FillCats()
+        {
+            cats.Clear();
+            void Pill(string text, PartCategory? c)
+            {
+                bool on = filter == c;
+                var b = Btn(text, () => { filter = c; FillCats(); FillCatalog(); }, !on);
+                b.style.fontSize = 11; b.style.paddingTop = 3; b.style.paddingBottom = 3; b.style.paddingLeft = 9; b.style.paddingRight = 9;
+                b.style.marginBottom = 4; b.style.marginRight = 3; HudStyle.Radius(b, 11);
+                if (on) { b.style.backgroundColor = new Color(HudStyle.Accent.r, HudStyle.Accent.g, HudStyle.Accent.b, 0.22f); b.style.color = HudStyle.Accent; }
+                cats.Add(b);
+            }
+            Pill("All", null);
+            foreach (PartCategory c in System.Enum.GetValues(typeof(PartCategory)))
+                if (vab.Definitions.Any(d => d.Category == c)) Pill(ShortName(c), c);
+        }
+
+        static string Thrust(PartDefinition d) => d.Engine == null ? "" : d.Engine.VacuumThrust < 10_000 ? $"{d.Engine.VacuumThrust:N0} N" : $"{d.Engine.VacuumThrust / 1000:N0} kN";
+
+        static string Spec(PartDefinition d) =>
+            d.Engine != null ? $"{Thrust(d)}"
+            : d.Resources.Count > 0 ? $"{d.Resources.Sum(r => r.Mass) / 1000:N1} t"
+            : $"Ø {d.Diameter:F1} m";
+
+        void ShowDetail(PartDefinition d)
+        {
+            if (d == null) { detailTitle.text = ""; detailSpec.text = "Hover a part for details, click to pick it up."; detailRef.text = ""; return; }
+            detailTitle.text = d.Title;
+            detailSpec.text = d.Engine != null ? $"{Thrust(d)} vacuum · Isp {d.Engine.SeaLevelIsp:F0} / {d.Engine.VacuumIsp:F0} s · {d.DryMass:N0} kg · Ø {d.Diameter:F2} m"
+                : d.Resources.Count > 0 ? $"{d.Resources.Sum(r => r.Mass) / 1000:N1} t propellant · {d.DryMass:N0} kg dry · Ø {d.Diameter:F2} × {d.Height:F1} m"
+                : $"{d.DryMass:N0} kg · Ø {d.Diameter:F2} m";
+            detailRef.text = d.Reference;
         }
 
         void FillCatalog()
@@ -137,37 +257,48 @@ namespace Karman.VAB
                 if (filter.HasValue && d.Category != filter.Value) continue;
                 if (q.Length > 0 && !(d.Title.ToLowerInvariant().Contains(q) || (d.Reference ?? "").ToLowerInvariant().Contains(q))) continue;
                 var card = new Button(() => vab.PickUp(d));
-                card.style.flexDirection = FlexDirection.Column; card.style.alignItems = Align.FlexStart;
-                card.style.backgroundColor = new Color(1, 1, 1, 0.04f);
-                card.style.borderTopLeftRadius = card.style.borderTopRightRadius = card.style.borderBottomLeftRadius = card.style.borderBottomRightRadius = 6;
-                card.style.borderTopWidth = card.style.borderBottomWidth = card.style.borderLeftWidth = card.style.borderRightWidth = 0;
-                card.style.marginBottom = 5; card.style.paddingTop = 6; card.style.paddingBottom = 6; card.style.paddingLeft = 8;
-                var t = new Label(d.Title); t.style.color = HudStyle.Text; t.style.fontSize = 13; t.style.unityFontStyleAndWeight = FontStyle.Bold;
-                string thrust = d.Engine == null ? "" : d.Engine.VacuumThrust < 10_000 ? $"{d.Engine.VacuumThrust:N0} N" : $"{d.Engine.VacuumThrust / 1000:N0} kN";
-                string spec = d.Engine != null ? $"{thrust} vac · Isp {d.Engine.SeaLevelIsp:F0}/{d.Engine.VacuumIsp:F0} s · {d.DryMass:N0} kg"
-                    : d.Resources.Count > 0 ? $"{d.Resources.Sum(r => r.Mass) / 1000:N1} t propellant · {d.DryMass:N0} kg dry"
-                    : $"{d.DryMass:N0} kg · Ø {d.Diameter:F2} m";
-                var s = new Label(spec); s.style.color = HudStyle.Dim; s.style.fontSize = 11;
-                var r = new Label(d.Reference); r.style.color = new Color(0.5f, 0.56f, 0.64f); r.style.fontSize = 10; r.style.whiteSpace = WhiteSpace.Normal;
-                foreach (var lbl in new[] { t, s, r }) { lbl.style.unityTextAlign = TextAnchor.UpperLeft; lbl.style.whiteSpace = WhiteSpace.Normal; lbl.style.alignSelf = Align.Stretch; }
-                card.Add(t); card.Add(s); card.Add(r);
+                card.clicked += Karman.Audio.UiSound.Click;
+                card.style.flexDirection = FlexDirection.Row; card.style.alignItems = Align.Center; card.style.justifyContent = Justify.SpaceBetween;
+                card.style.backgroundColor = new Color(1, 1, 1, 0f);
+                HudStyle.Radius(card, 8); HudStyle.Border(card, 0, Color.clear);
+                card.style.marginBottom = 1; card.style.paddingTop = 7; card.style.paddingBottom = 7; card.style.paddingLeft = 10; card.style.paddingRight = 10;
+                card.style.marginLeft = 0; card.style.marginRight = 0;
+                var t = HudStyle.Weight(new Label(d.Title), HudStyle.Medium); t.style.color = HudStyle.Text; t.style.fontSize = 12; t.style.flexShrink = 1;
+                t.style.unityTextAlign = TextAnchor.MiddleLeft; t.style.whiteSpace = WhiteSpace.NoWrap; t.style.overflow = Overflow.Hidden; t.style.textOverflow = TextOverflow.Ellipsis;
+                var s = new Label(Spec(d)); s.style.color = HudStyle.Faint; s.style.fontSize = 10; s.style.marginLeft = 8; s.style.unityTextAlign = TextAnchor.MiddleRight; s.style.flexShrink = 0;
+                card.Add(t); card.Add(s);
+                card.RegisterCallback<MouseEnterEvent>(_ => { card.style.backgroundColor = new Color(1, 1, 1, 0.08f); ShowDetail(d); });
+                card.RegisterCallback<MouseLeaveEvent>(_ => card.style.backgroundColor = new Color(1, 1, 1, 0f));
                 catalog.Add(card);
             }
+            ShowDetail(vab.Held);
         }
+
+        void SetMarkers(bool on)
+        {
+            markers = on;
+            foreach (var m in new[] { vab.comMarker, vab.cotMarker })
+                if (m) foreach (var r in m.GetComponentsInChildren<Renderer>(true)) r.enabled = on;
+        }
+
+        void ToggleTemplates() => templates.style.display = templates.style.display == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None;
 
         void ToggleLoad()
         {
             if (loadPanel.style.display == DisplayStyle.Flex) { loadPanel.style.display = DisplayStyle.None; return; }
             loadPanel.Clear();
-            loadPanel.Add(HudStyle.Title("LOAD CRAFT"));
+            loadPanel.Add(HudStyle.Title("OPEN VEHICLE"));
             var files = Directory.GetFiles(CraftSerializer.CraftDirectory, "*.craft.json").OrderByDescending(File.GetLastWriteTime).ToList();
-            if (files.Count == 0) { var l = new Label("No saved craft yet."); l.style.color = HudStyle.Dim; loadPanel.Add(l); }
+            if (files.Count == 0) { var l = new Label("No saved vehicles yet."); l.style.color = HudStyle.Dim; loadPanel.Add(l); }
             foreach (var f in files)
             {
                 string path = f;
-                loadPanel.Add(Btn(Path.GetFileName(f).Replace(".craft.json", ""), () => { vab.Load(path); loadPanel.style.display = DisplayStyle.None; }));
+                var b = Btn(Path.GetFileName(f).Replace(".craft.json", ""), () => { vab.Load(path); loadPanel.style.display = DisplayStyle.None; });
+                b.style.unityTextAlign = TextAnchor.MiddleLeft;
+                loadPanel.Add(b);
             }
-            loadPanel.Add(Btn("Close", () => loadPanel.style.display = DisplayStyle.None));
+            var close = Btn("Close", () => loadPanel.style.display = DisplayStyle.None, false); close.style.marginTop = 8;
+            loadPanel.Add(close);
             loadPanel.style.display = DisplayStyle.Flex;
         }
 
@@ -176,34 +307,45 @@ namespace Karman.VAB
             if (readouts == null) return;
             if (nameField.value != vab.Craft.Name) nameField.SetValueWithoutNotify(vab.Craft.Name);
             symLabel.text = $"×{vab.Symmetry}";
-            heldLabel.text = vab.Held != null ? $"Placing: {vab.Held.Title}\nClick a green node or a surface · R rotate · right-click cancel · Shift-click repeat" : "Click a part to pick it up. Select a placed part and press Delete to remove it.";
-            status.text = vab.Status;
+            status.text = !string.IsNullOrEmpty(vab.Status) ? vab.Status
+                : vab.Held != null ? $"Placing {vab.Held.Title}  ·  click a green node or a surface  ·  R rotate  ·  right-click cancel  ·  Shift-click repeat"
+                : "Pick a part from the list  ·  click a placed part to select it  ·  Delete removes  ·  right-drag orbit, scroll zoom";
+            if (vab.Held != null) ShowDetail(vab.Held);
+
+            var v = vab.Vacuum; var sl = vab.SeaLevel;
+            dvTile.text = $"{v.TotalDeltaV:N0}";
+            float twr = sl.Stages.Count > 0 ? (float)sl.Stages[0].StartTwr : 0;
+            twrTile.text = sl.Stages.Count > 0 ? $"{twr:F2}" : "—";
+            twrTile.style.color = sl.Stages.Count == 0 ? HudStyle.Text : twr < 1.0f ? HudStyle.Bad : twr < 1.15f ? HudStyle.Warn : HudStyle.Good;
+            massTile.text = $"{v.TotalMass / 1000:N0} t";
 
             readouts.Clear();
-            var v = vab.Vacuum; var sl = vab.SeaLevel;
             void Row(string k, string val) { HudStyle.Row(readouts, k).text = val; }
             Row("Parts", vab.Craft.Parts.Count.ToString());
-            Row("Total mass", $"{v.TotalMass / 1000:N2} t");
-            Row("Dry mass", $"{v.DryMass / 1000:N2} t");
-            Row("Propellant", $"{v.PropellantMass / 1000:N2} t");
-            Row("Δv vacuum / sea level", $"{v.TotalDeltaV:N0} / {sl.TotalDeltaV:N0} m/s");
-            if (sl.Stages.Count > 0) Row("Lift-off TWR", $"{sl.Stages[0].StartTwr:F2}");
-            Row("CoM height", $"{v.CenterOfMass[1] - (vab.platformTop.y - vab.craftRoot.position.y):F1} m");
+            Row("Dry / propellant", $"{v.DryMass / 1000:N1} / {v.PropellantMass / 1000:N1} t");
+            Row("Δv at sea level", $"{sl.TotalDeltaV:N0} m/s");
+            Row("Centre of mass", $"{v.CenterOfMass[1] - (vab.platformTop.y - vab.craftRoot.position.y):F1} m");
 
+            stageToggle.text = $"STAGING  {(stagingOpen ? "▾" : "▸")}   {v.Stages.Count} STAGES";
+            stagingBody.style.display = stagingOpen ? DisplayStyle.Flex : DisplayStyle.None;
             staging.Clear();
+            if (!stagingOpen) return;
             for (int i = 0; i < v.Stages.Count; i++)
             {
                 var s = v.Stages[i]; var s2 = i < sl.Stages.Count ? sl.Stages[i] : null;
                 var box = new VisualElement();
-                box.style.backgroundColor = new Color(1, 1, 1, 0.04f);
-                box.style.borderTopLeftRadius = box.style.borderTopRightRadius = box.style.borderBottomLeftRadius = box.style.borderBottomRightRadius = 6;
-                box.style.marginTop = 6; box.style.paddingLeft = 8; box.style.paddingRight = 8; box.style.paddingTop = 5; box.style.paddingBottom = 6;
-                var head = new Label($"STAGE {s.Stage}   Δv {s.DeltaV:N0} m/s{(s2 != null ? $" ({s2.DeltaV:N0} ASL)" : "")}");
-                head.style.color = HudStyle.Accent; head.style.fontSize = 12; head.style.unityFontStyleAndWeight = FontStyle.Bold;
+                box.style.backgroundColor = new Color(1, 1, 1, 0.04f); HudStyle.Radius(box, 10);
+                box.style.marginTop = 6; HudStyle.Pad(box, 10, 8);
+                var head = new VisualElement(); head.style.flexDirection = FlexDirection.Row; head.style.justifyContent = Justify.SpaceBetween;
+                head.Add(HudStyle.Value($"Stage {s.Stage}", 12, HudStyle.Accent));
+                head.Add(HudStyle.Value(s.EngineCount > 0 ? $"{s.DeltaV:N0} m/s" : "separation", 12, s.EngineCount > 0 ? HudStyle.Text : HudStyle.Dim));
                 box.Add(head);
-                var info = new Label(s.EngineCount > 0 ? $"TWR {s.StartTwr:F2} vac{(s2 != null ? $" / {s2.StartTwr:F2} ASL" : "")} · burn {s.BurnTime:N0} s · Isp {s.Isp:F0} s" : (s.Jettisons ? "separation only" : "no engines"));
-                info.style.color = HudStyle.Dim; info.style.fontSize = 11; box.Add(info);
-                var chips = new VisualElement(); chips.style.flexDirection = FlexDirection.Row; chips.style.flexWrap = Wrap.Wrap; chips.style.marginTop = 3;
+                if (s.EngineCount > 0)
+                {
+                    var info = new Label($"TWR {s.StartTwr:F2}{(s2 != null && i == 0 ? $" ({s2.StartTwr:F2} ASL)" : "")}  ·  {s.BurnTime:N0} s  ·  Isp {s.Isp:F0} s");
+                    info.style.color = HudStyle.Dim; info.style.fontSize = 11; info.style.marginTop = 2; box.Add(info);
+                }
+                var chips = new VisualElement(); chips.style.flexDirection = FlexDirection.Row; chips.style.flexWrap = Wrap.Wrap; chips.style.marginTop = 4;
                 var seenGroups = new System.Collections.Generic.HashSet<int>();
                 foreach (var p in vab.Craft.Parts.Where(p => p.Stage == s.Stage))
                 {
@@ -211,9 +353,9 @@ namespace Karman.VAB
                     int count = p.SymmetryGroup >= 0 ? vab.Craft.Parts.Count(q => q.SymmetryGroup == p.SymmetryGroup) : 1;
                     var d = vab.Lookup(p.PartId);
                     int id = p.Id;
-                    var chip = Btn((count > 1 ? $"{count}× " : "") + d.Title, () => vab.Select(id));
-                    chip.style.fontSize = 11; chip.style.marginTop = 2;
-                    if (vab.Selected == id) chip.style.backgroundColor = new Color(0.36f, 0.78f, 1f, 0.35f);
+                    var chip = Btn((count > 1 ? $"{count}× " : "") + d.Title, () => vab.Select(id), false);
+                    chip.style.fontSize = 10; chip.style.marginTop = 2; chip.style.marginRight = 3; HudStyle.Pad(chip, 7, 3); HudStyle.Radius(chip, 9);
+                    if (vab.Selected == id) { chip.style.backgroundColor = new Color(0.38f, 0.8f, 1f, 0.28f); chip.style.color = HudStyle.Accent; }
                     chips.Add(chip);
                 }
                 box.Add(chips);

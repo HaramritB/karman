@@ -62,9 +62,11 @@ Material:
     m_Ints: []
     m_Floats:
     - _DetailScale: 35
+    - _HazeDistance: 16000
     - _NightIntensity: 2.5
     - _SunIntensity: 4
     m_Colors:
+    - _HazeColor: {r: 0.58, g: 0.7, b: 0.86, a: 1}
     - _SkyColor: {r: 0.31999996, g: 0.5, b: 0.78, a: 1}
     - _SunDir: {r: 0, g: 1, b: 0, a: 0}
     - _ZenithOpticalDepth: {r: 0.046, g: 0.108, b: 0.265, a: 0}

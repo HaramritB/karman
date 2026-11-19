@@ -247,6 +247,16 @@ namespace Karman.EditorTools
             glare.transform.SetParent(sunView.transform.parent, false);
 
             var lighting = simGo.AddComponent<SpaceLighting>();
+            var probeGo = new GameObject("Sky Reflection Probe");
+            var probe = probeGo.AddComponent<ReflectionProbe>();
+            probe.mode = ReflectionProbeMode.Realtime;
+            probe.refreshMode = ReflectionProbeRefreshMode.EveryFrame;
+            probe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
+            probe.resolution = 128; probe.hdr = true; probe.importance = 10;
+            probe.size = new Vector3(20000, 20000, 20000); probe.nearClipPlane = 30f; probe.farClipPlane = 200000f;
+            probe.cullingMask = ~(1 << 30);
+            probe.clearFlags = ReflectionProbeClearFlags.Skybox;
+            lighting.skyProbe = probe;
             lighting.sunLight = sunLight;
             lighting.planetShineLight = shine;
             lighting.glare = glare.transform;
@@ -320,6 +330,7 @@ namespace Karman.EditorTools
             var hud = hudGo.AddComponent<FlightHud>();
             var navball = hudGo.AddComponent<NavballView>();
             navball.ballMaterial = Mat("Navball", "Karman/Navball");
+            navball.ballMaterial.SetColor("_Sky", new Color(0.13f, 0.30f, 0.50f)); navball.ballMaterial.SetColor("_Ground", new Color(0.30f, 0.21f, 0.13f));
             navball.vessel = vessel;
             hud.navball = navball;
             var autopilot = simGo.AddComponent<AscentAutopilot>();

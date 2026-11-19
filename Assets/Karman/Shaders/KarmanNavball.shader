@@ -29,7 +29,7 @@ Shader "Karman/Navball"
                 float px = fwidth(elev) * 1.5;
                 float pitchLines = lineMask(elev, 10, px) * (abs(elev) < 88 ? 1 : 0);
                 float hdgLines = lineMask(hdg, 30, fwidth(hdg) * 1.5 / max(cos(radians(elev)), 0.2)) * (abs(elev) < 80 ? 1 : 0);
-                col = lerp(col, float3(1, 1, 1), max(pitchLines, hdgLines) * 0.55);
+                col = lerp(col, float3(1, 1, 1), max(pitchLines, hdgLines) * 0.35);
                 col = lerp(col, float3(1, 1, 1), lineMask(elev, 360, px * 2.5));           // horizon
                 col = lerp(col, float3(1, 0.85, 0.2), lineMask(hdg, 360, fwidth(hdg) * 3) * (abs(elev) < 80 ? 1 : 0)); // north
                 float shade = 0.55 + 0.45 * saturate(dot(normalize(i.nWS), float3(0, 0, -1)));
