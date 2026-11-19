@@ -56,6 +56,7 @@ namespace Karman.Rendering
         void Start()
         {
             body = SimulationController.Instance.System.Get(bodyView.bodyId);
+            splitFactor = Karman.Settings.QualitySettingsStore.TerrainSplitFactor;
             terrain = TerrainRegistry.Get(bodyView.bodyId);
             radius = body.Radius;
             patchRoot = new GameObject($"{body.Definition.DisplayName} Terrain").transform;
@@ -106,7 +107,14 @@ namespace Karman.Rendering
             var sun = SimulationController.Instance.System.Sun;
             material.SetVector("_SunDir", Coords.ToUnity((sun.Position - body.Position).normalized));
             var earth = SimulationController.Instance.System.Get(SolarSystemData.Earth);
-            if (earth != null) material.SetVector("_EarthDir", Coords.ToUnity((earth.Position - body.Position).normalized));
+            if (earth != null)
+            {
+                Vector3d toEarth = (earth.Position - body.Position).normalized;
+                material.SetVector("_EarthDir", Coords.ToUnity(toEarth));
+                // Earthshine scales with the sunlit fraction of Earth seen from the Moon.
+                double phase = 0.5 * (1 + Vector3d.Dot(-toEarth, (sun.Position - earth.Position).normalized));
+                material.SetFloat("_EarthShine", (float)(0.012 + 0.04 * phase));
+            }
         }
 
         void Visit(Node n, Vector3d cam, int frame)

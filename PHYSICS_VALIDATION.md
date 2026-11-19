@@ -64,6 +64,11 @@ Earth heliocentric velocity within 0.05 km/s. GMST at J2000 matches 280.46061837
 - In the built game (automated, Lunar Landing scenario): touchdown 1.5 m/s vertical / 0.01 m/s horizontal / 0.1° tilt;
   ascent to 45.0 × 60.3 km. Terrain: ~300–2,000 visible patches, 140–420 fps near the surface (M3 Pro, 1080p).
 
+## Heavy launcher (Phase 6)
+- Headless: Kármán V (2,714 t at liftoff) reaches 191.1 × 171.3 km; transfer stage 3,137 + descent stage 3,475 m/s
+  ≥ TLI 3,190 + LOI 850 + landing 2,300 m/s.
+- In the built game (automated): 190.5 × 170.2 km, i 28.61°, max-Q 38 kPa; remaining stages 3,091 / 3,475 / 3,100 m/s.
+
 ## Approximations (documented)
 Rigid vehicle; lunar terrain detail below 1.9 km is procedural (not measured); drag only (no lift or aerodynamic torque yet); attitude authority = pod torque + engine gimbal; point-mass gravity of the dominant body only (no J2, no third-body perturbations yet); fixed ΔT = 69.2 s;
 Moon series truncated (≈ 1.5′); planetary elements valid 1800–2050.

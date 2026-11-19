@@ -49,7 +49,7 @@ Shader "Karman/Atmosphere"
                 return o;
             }
 
-            #define PRIMARY_STEPS 32
+            float _KarmanAtmoSteps;   // global, set by the quality preset (0 = default 32)
             #define LIGHT_STEPS 6
 
             half4 frag(Varyings i) : SV_Target
@@ -81,13 +81,14 @@ Shader "Karman/Atmosphere"
                 }
                 if (tEnd <= tStart) return 0;
 
-                float ds = (tEnd - tStart) / PRIMARY_STEPS;
+                int steps = _KarmanAtmoSteps > 0.5 ? (int)_KarmanAtmoSteps : 32;
+                float ds = (tEnd - tStart) / steps;
                 float odR = 0, odM = 0;
                 float3 sumR = 0, sumM = 0;
                 float3 betaR = _BetaR.xyz;
                 float betaMExt = _BetaM * 1.1;
 
-                [loop] for (int s = 0; s < PRIMARY_STEPS; s++)
+                [loop] for (int s = 0; s < steps; s++)
                 {
                     float3 p = ro + rd * (tStart + (s + 0.5) * ds);
                     float h = length(p) - 1.0;

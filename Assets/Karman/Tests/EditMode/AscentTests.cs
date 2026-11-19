@@ -34,7 +34,7 @@ namespace Karman.Tests
             return c;
         }
 
-        public struct AscentResult { public double ApKm, PeKm, IncDeg, MaxQ, TimeS, DvLeft; public bool Crashed; public string Log; }
+        public struct AscentResult { public double ApKm, PeKm, IncDeg, MaxQ, TimeS, DvLeft, StageDv, NextStageDv; public bool Crashed; public string Log; }
 
         public static AscentResult Fly(Craft craft, double timeLimit = 5000)
         {
@@ -107,8 +107,30 @@ namespace Karman.Tests
             return new AscentResult
             {
                 ApKm = (o.ApoapsisRadius - earth.Radius) / 1000, PeKm = (o.PeriapsisRadius - earth.Radius) / 1000,
-                IncDeg = traj.EquatorialInclination * Constants.Rad2Deg, MaxQ = maxQ, TimeS = t, DvLeft = veh.Analyse().TotalDeltaV, Log = log.ToString(),
+                IncDeg = traj.EquatorialInclination * Constants.Rad2Deg, MaxQ = maxQ, TimeS = t, DvLeft = veh.Analyse().TotalDeltaV, StageDv = StageDeltaV(veh), NextStageDv = veh.Analyse().Stages.Count > 1 ? veh.Analyse().Stages[1].DeltaV : 0, Log = log.ToString(),
             };
+        }
+
+        /// <summary>Δv left in the stage that is burning now (the transfer stage after orbit insertion).</summary>
+        static double StageDeltaV(FlightVehicle veh)
+        {
+            var a = veh.Analyse();
+            return a.Stages.Count > 0 ? a.Stages[0].DeltaV : 0;
+        }
+
+        [TestCase(4)]
+        public void HeavyLauncherPutsLunarStackInOrbit(int sideCores)
+        {
+            var craft = SampleCrafts.HeavyLunar(L, sideCores);
+            var r = Fly(craft, 6000);
+            TestContext.WriteLine($"Kármán V ({sideCores} side cores): Ap {r.ApKm:F1} km, Pe {r.PeKm:F1} km, i {r.IncDeg:F2}°, max-Q {r.MaxQ / 1000:F1} kPa, T+{r.TimeS:F0}s, Δv left {r.DvLeft:F0} m/s (transfer stage {r.StageDv:F0}, descent stage {r.NextStageDv:F0} m/s)\n{r.Log}");
+            Assert.IsFalse(r.Crashed);
+            Assert.GreaterOrEqual(r.PeKm, 150);
+            // From LEO: trans-lunar injection ~3.19 km/s (measured by the planner test) + lunar orbit insertion ~0.85 km/s
+            // + powered descent ~2.3 km/s (measured in the landing test). The transfer stage does most of the TLI and the
+            // descent stage the rest, LOI and the landing.
+            Assert.GreaterOrEqual(r.StageDv + r.NextStageDv, 3190 + 850 + 2300, "Δv for TLI + LOI + landing");
+            Assert.GreaterOrEqual(r.StageDv, 2800);
         }
 
         [TestCase(false)]

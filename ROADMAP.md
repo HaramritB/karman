@@ -56,11 +56,17 @@
 - [x] Earth entry: Sutton–Graves heating vs heat-shield capacity, capsule lift with bank law, reefed parachute,
       splashdown limit; plasma sheath and canopy visuals; HUD radar altitude, g, heat, chute
 - [x] Scenarios: Lunar Mission (lander stack in a Moon-plane LEO), Lunar Landing (100 km lunar orbit)
-- [ ] Full Earth-launch lunar mission needs a heavier launcher (current launcher lifts the Gemini, not the 210 t stack)
 - [ ] Higher-resolution DEM tiles at landing sites; terrain shadows; landing-leg suspension animation
 
-## Phase 6
-Polish: shaders, terrain detail, sound, UI, more vehicles/parts, performance, bug fixing. See the brief.
+## Phase 6 — Production polish (in progress, first pass 2026-11-19)
+- [x] Kármán V heavy launcher (4 side cores, sustainer core, J-2X-class hydrolox transfer stage): pad → 190 × 170 km with
+      the lunar stack and Δv for TLI + LOI + landing (headless and in the built game); "Moon Mission from the Pad"
+- [x] Procedural, original audio: pressure-dependent engine roar (structure-borne hum in vacuum), wind, transients, UI
+- [x] Settings: Low/Medium/High/Ultra presets (render scale, MSAA, shadow range, terrain split, atmosphere samples),
+      1440p, volume (persisted)
+- [x] Earthshine on lunar terrain from Earth's phase
+- [ ] Terrain/vessel shadows on the Moon, Earth ground haze, sourced pad/VAB models, more parts, part fuel sliders in
+      the VAB, rendezvous with a second vessel, aerodynamic torques, profiler pass
 
 ## Known issues
 - Rigid vehicles: no structural loads or aerodynamic torques; attitude authority is idealised (pod torque + gimbal).

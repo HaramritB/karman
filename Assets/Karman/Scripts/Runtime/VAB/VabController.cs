@@ -92,7 +92,7 @@ namespace Karman.VAB
         public void LoadLunarSample()
         {
             Snapshot();
-            Craft = SampleCrafts.LunarLander(Lookup, true);
+            Craft = SampleCrafts.HeavyLunar(Lookup);
             Selected = -1; ManualStaging = false;
             Rebuild();
         }

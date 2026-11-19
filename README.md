@@ -51,6 +51,9 @@ Open the map (M). Click the blue trajectory to place a node, then use the planni
 burn; encounters and closest approaches are labelled. EXECUTE (or N in flight) warps to the burn and flies it.
 
 ## Going to the Moon
+Main menu ▸ **Moon Mission from the Pad** puts the Kármán V with the lunar lander on LC-39A (G flies it to orbit; then
+plan the Moon transfer on the map). The VAB's **Moon rocket** button loads the same vehicle for editing.
+
 Main menu ▸ **Lunar Landing** starts in a 100 km lunar orbit: press **G** to deorbit and land on real LOLA terrain, then
 **G** again to lift off back to orbit; open the map and press **Return to Earth** to plan the trans-Earth burn, EXECUTE it,
 and arm the parachute with **C** before entry. **Lunar Mission** starts the full stack in a low Earth orbit in the Moon's

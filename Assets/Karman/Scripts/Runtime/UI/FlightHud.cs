@@ -30,6 +30,8 @@ namespace Karman.UI
 
         void Start()
         {
+            Karman.Audio.UiSound.PlayAmbient(false);
+            if (GetComponent<Karman.Audio.FlightAudio>() == null) gameObject.AddComponent<Karman.Audio.FlightAudio>();
             doc = GetComponent<UIDocument>();
             Build(doc.rootVisualElement);
             var v = SimulationController.Instance.ActiveVessel;

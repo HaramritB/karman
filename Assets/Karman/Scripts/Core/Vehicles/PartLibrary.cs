@@ -28,7 +28,7 @@ namespace Karman.Core.Vehicles
                 DryMass = Math.Round(total * TankStructureFraction), ModelId = $"tank_{h:0}",
                 Nodes = { new AttachNode("top", h / 2, 1, d), new AttachNode("bottom", -h / 2, -1, d) },
                 Resources = { new ResourceCapacity(ox, Math.Round(total * fOx)), new ResourceCapacity(fuel, Math.Round(total * fFuel)) },
-                AllowSurfaceAttach = true, DragArea = Math.PI * d * d / 4,
+                AllowSurfaceAttach = true, SurfaceAttachOffset = d / 2, DragArea = Math.PI * d * d / 4,
             };
         }
 
@@ -137,6 +137,22 @@ namespace Karman.Core.Vehicles
                 Description = "High-efficiency upper-stage engine.", DryMass = 301, Diameter = 2.15f, Height = 4.15f, CenterOfMassY = 1.0f, ModelId = "engine_vacuum",
                 Nodes = { new AttachNode("top", 2.07f, 1, 1.0f), new AttachNode("bottom", -2.07f, -1, 3.7f) },
                 Engine = new EngineDefinition { NozzleExitDiameter = 2.1f, VacuumThrust = 110_100, SeaLevelThrust = 40_000, VacuumIsp = 465.5, SeaLevelIsp = 170, MinThrottle = 1, GimbalDegrees = 4, Mixture = Mix(Propellant.LiquidOxygen, HydroloxOF, Propellant.LiquidHydrogen) },
+            });
+            parts.Add(new PartDefinition
+            {
+                Id = "engine.hj2", Title = "HJ-2 hydrolox engine", Category = PartCategory.Engine,
+                Reference = "J-2X-class gas-generator hydrolox engine: 1,307 kN vac, Isp 448 s, 2,470 kg, restartable",
+                Description = "High-thrust upper-stage hydrogen engine (orbit insertion and trans-lunar injection).", DryMass = 2470, Diameter = 3.05f, Height = 4.7f, CenterOfMassY = 1.0f, ModelId = "engine_vacuum",
+                Nodes = { new AttachNode("top", 2.35f, 1, 2.0f), new AttachNode("bottom", -2.35f, -1, 3.7f) },
+                Engine = new EngineDefinition { NozzleExitDiameter = 3.0f, VacuumThrust = 1_307_000, SeaLevelThrust = 1_000_000, VacuumIsp = 448, SeaLevelIsp = 300, MinThrottle = 0.8, GimbalDegrees = 4, Mixture = Mix(Propellant.LiquidOxygen, HydroloxOF, Propellant.LiquidHydrogen) },
+            });
+            parts.Add(new PartDefinition
+            {
+                Id = "engine.h2.cluster4", Title = "HL-10 four-engine cluster", Category = PartCategory.Engine,
+                Reference = "Four RL10B-2-class engines on a 3.7 m thrust structure: 440 kN, Isp 465.5 s",
+                Description = "High-energy upper-stage propulsion for lunar transfer.", DryMass = 4 * 301 + 220, Diameter = 3.7f, Height = 4.3f, CenterOfMassY = 0.8f, ModelId = "engine_cluster4",
+                Nodes = { new AttachNode("top", 2.15f, 1, 3.7f), new AttachNode("bottom", -2.15f, -1, 3.7f) },
+                Engine = new EngineDefinition { NozzleExitDiameter = 1.6f, VacuumThrust = 4 * 110_100, SeaLevelThrust = 4 * 40_000, VacuumIsp = 465.5, SeaLevelIsp = 170, MinThrottle = 1, GimbalDegrees = 4, Mixture = Mix(Propellant.LiquidOxygen, HydroloxOF, Propellant.LiquidHydrogen) },
             });
             parts.Add(new PartDefinition
             {

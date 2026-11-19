@@ -210,6 +210,18 @@ def engine_vacuum():
     torus(1.5, 0.02, ext[-1][1], M["steel"], 96)
     export("engine_vacuum")
 
+def engine_cluster4():
+    reset(); materials()
+    cyl(1.85, 0.4, 1.95, 96, M["black"], name="thrustplate")
+    torus(1.85, 0.02, 2.15, M["grey"], 96)
+    for k in range(4):
+        a = math.pi / 4 + k * math.pi / 2
+        before = set(bpy.context.scene.objects)
+        engine_core(0.7, 0.62, 2.6, 1.75, vacuum=True)
+        for o in set(bpy.context.scene.objects) - before:
+            o.location.x += 0.95 * math.cos(a); o.location.y += 0.95 * math.sin(a)
+    export("engine_cluster4")
+
 def srb():
     reset(); materials()
     r, h = 0.8, 20.0
@@ -267,5 +279,5 @@ def nose():
         torus(ogive_r(zz) + 0.003, 0.008, zz - 3.0, M["grey"], 96)
     export("nose")
 
-for f in (lambda: tank("tank_8", 3.7, 8.0), lambda: tank("tank_10", 3.7, 10.0), lambda: tank("tank_16", 3.7, 16.0), lambda: tank("tank_32", 3.7, 32.0), lambda: tank("tank_s15", 3.05, 1.5), lambda: tank("tank_s30", 3.05, 3.0), engine_booster, engine_cluster9, engine_vacuum, srb, decoupler, radial_decoupler, adapter, interstage, nose):
+for f in (engine_cluster4, lambda: tank("tank_8", 3.7, 8.0), lambda: tank("tank_10", 3.7, 10.0), lambda: tank("tank_16", 3.7, 16.0), lambda: tank("tank_32", 3.7, 32.0), lambda: tank("tank_s15", 3.05, 1.5), lambda: tank("tank_s30", 3.05, 3.0), engine_booster, engine_cluster9, engine_vacuum, srb, decoupler, radial_decoupler, adapter, interstage, nose):
     f()

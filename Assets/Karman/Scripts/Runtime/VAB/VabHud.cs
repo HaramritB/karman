@@ -41,6 +41,7 @@ namespace Karman.VAB
         static Button Btn(string text, System.Action a, float w = 0)
         {
             var b = new Button(a) { text = text };
+            b.clicked += Karman.Audio.UiSound.Click;
             b.style.backgroundColor = new Color(1, 1, 1, 0.06f);
             b.style.color = HudStyle.Text; b.style.fontSize = 12;
             b.style.borderTopWidth = b.style.borderBottomWidth = b.style.borderLeftWidth = b.style.borderRightWidth = 1;
@@ -74,7 +75,7 @@ namespace Karman.VAB
             symLabel = new Label(); symLabel.style.color = HudStyle.Accent; symLabel.style.marginLeft = 6; symLabel.style.marginRight = 2;
             topBar.Add(Btn("Symmetry", vab.CycleSymmetry)); topBar.Add(symLabel);
             var spacer = new VisualElement(); spacer.style.flexGrow = 1; topBar.Add(spacer);
-            topBar.Add(Btn("Lunar sample", () => vab.LoadLunarSample()));
+            topBar.Add(Btn("Moon rocket", () => vab.LoadLunarSample()));
             var launch = Btn("LAUNCH ▸", vab.Launch);
             launch.style.backgroundColor = new Color(0.36f, 0.78f, 1f, 0.85f); launch.style.color = new Color(0.02f, 0.05f, 0.08f);
             launch.style.unityFontStyleAndWeight = FontStyle.Bold;

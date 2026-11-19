@@ -77,6 +77,8 @@ namespace Karman.Diagnostics
             Shot(dir, "36_in_orbit");
             yield return Wait(4);
             report.AppendLine($"RESULT {autopilot.State}: Ap {v.Trajectory.ApoapsisAltitude / 1000:F1} km, Pe {v.Trajectory.PeriapsisAltitude / 1000:F1} km, inc {v.Trajectory.EquatorialInclination * Mathf.Rad2Deg:F2}°, e {o.eccentricity:F4}");
+            var an = v.Vehicle.Analyse();
+            report.AppendLine("Remaining stages: " + string.Join(" | ", an.Stages.ConvertAll(st => $"S{st.Stage} {st.DeltaV:F0} m/s")));
             report.AppendLine($"Max Q {v.MaxQ / 1000:F1} kPa; Δv remaining {v.Vehicle.Analyse().TotalDeltaV:F0} m/s; mass {v.Vehicle.Mass / 1000:F2} t; MET {v.MissionElapsed:F0} s");
             // Stability check: coast one full orbit on rails and confirm the periapsis is unchanged and above the atmosphere.
             double pe0 = v.Trajectory.PeriapsisAltitude;

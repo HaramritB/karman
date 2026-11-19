@@ -1,0 +1,10 @@
+T+0.0s  Stage 4 activated  (alt 0.05 km, v 0 m/s)
+T+0.0s  Liftoff  (alt 0.05 km, v 0 m/s)
+T+179.1s  Separation: 20 parts jettisoned  (alt 72.47 km, v 5163 m/s)
+T+179.1s  Stage 3 activated  (alt 72.47 km, v 5163 m/s)
+T+180.2s  Separation: 4 parts jettisoned  (alt 72.93 km, v 5162 m/s)
+T+180.2s  Stage 2 activated  (alt 72.93 km, v 5162 m/s)
+RESULT Done: Ap 190.5 km, Pe 170.2 km, inc 28.61°, e 0.0016
+Remaining stages: S2 3091 m/s | S1 3475 m/s | S0 3100 m/s
+Max Q 38.1 kPa; Δv remaining 9666 m/s; mass 113.78 t; MET 2610 s
+After one orbit on rails: Pe 170.179 km (Δ 0.000 m), altitude 190.5 km, crashed False

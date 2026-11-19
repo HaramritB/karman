@@ -68,7 +68,9 @@ namespace Karman.Core.Vehicles
                     break;
                 }
                 case Mode.Circularise:
-                    if (pe >= TargetPeriapsis || (!orbit.IsHyperbolic && orbit.eccentricity < 0.0015 && pe > 140_000)) Phase = Mode.Complete;
+                    // Periapsis cannot exceed the current altitude: accept a periapsis at (almost) the altitude we hold.
+                    if (pe >= Math.Min(TargetPeriapsis, alt - 3_000) && pe > CoastAbove + 60_000 * (CoastAbove > 0 ? 1 : 0) || pe >= TargetPeriapsis
+                        || (!orbit.IsHyperbolic && orbit.eccentricity < 0.0015 && pe > 140_000)) Phase = Mode.Complete;
                     break;
             }
 
