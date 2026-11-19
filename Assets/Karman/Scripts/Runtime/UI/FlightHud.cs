@@ -162,7 +162,7 @@ namespace Karman.UI
                 "G ascent assist (pad to orbit)",
                 ", / . time warp · / real time · P pause",
                 "Right-drag orbit camera · scroll zoom",
-                "V cycle focus · Backspace vessel · M map · Esc menu",
+                "V cycle focus · Backspace vessel · M map (plan nodes) · N execute node · Esc menu",
             })
             {
                 var l = new Label(line); l.style.color = HudStyle.Dim; l.style.fontSize = 12; l.style.marginTop = 1;
@@ -179,6 +179,7 @@ namespace Karman.UI
                 if (Karman.Map.MapView.IsActive) FindAnyObjectByType<Karman.Map.MapView>().SetActive(false);
                 else UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
             }
+            if (kb != null && kb.nKey.wasPressedThisFrame && Karman.Flight.ManeuverPlanner.Instance != null) Karman.Flight.ManeuverPlanner.Instance.BeginExecution();
             if (kb != null && kb.f1Key.wasPressedThisFrame) help.style.display = help.style.display == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None;
             if (Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + 0.1f;
@@ -254,6 +255,19 @@ namespace Karman.UI
                 var row = new Label($"S{st.Stage}  {st.DeltaV:N0} m/s  ·  {HudStyle.Duration(st.BurnTime)}  ·  TWR {st.StartTwr:F2}");
                 row.style.fontSize = 12; row.style.color = st == cur ? HudStyle.Text : HudStyle.Dim; row.style.marginTop = 2;
                 stageStack.Add(row);
+            }
+            var mp = Karman.Flight.ManeuverPlanner.Instance;
+            if (mp != null && mp.Node != null)
+            {
+                var nrow = new Label(mp.Executing
+                    ? $"NODE · burning · {Math.Max(0, mp.RemainingDeltaV):F1} m/s left"
+                    : $"NODE · T−{HudStyle.Duration(mp.Node.UT - sim.Time)} · {mp.Node.DeltaV:F1} m/s · burn {HudStyle.Duration(mp.BurnTime)}  (N execute)");
+                nrow.style.color = new Color(1f, 0.62f, 0.2f); nrow.style.fontSize = 12; nrow.style.marginTop = 6;
+                stageStack.Add(nrow);
+            }
+            else if (mp != null && !string.IsNullOrEmpty(mp.Status))
+            {
+                var nrow = new Label(mp.Status); nrow.style.color = HudStyle.Dim; nrow.style.fontSize = 11; nrow.style.marginTop = 6; stageStack.Add(nrow);
             }
             if (v.Landed && !v.Launched) statusLabel.text = "ON THE PAD · Z full throttle, Space to ignite · or G for ascent assist";
             else statusLabel.text = v.Crashed ? "VESSEL LOST · IMPACT" : v.Landed ? "LANDED" : "";

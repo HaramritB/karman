@@ -45,6 +45,11 @@ Build or load a craft in the VAB and press **LAUNCH**. It stands on LC-39A at Ke
 to ignite, or **G** for the ascent assistant, which flies to a ~190 km orbit using the same controls you have.
 Time warp , and . (up to 5× keeps full physics; higher warps are on rails and only allowed above the atmosphere).
 
+## Planning maneuvers
+Open the map (M). Click the blue trajectory to place a node, then use the planning panel to add prograde / normal / radial
+Δv and shift its time (or use Node at Ap/Pe, Circularise, Plan Moon transfer). The orange line is the trajectory after the
+burn; encounters and closest approaches are labelled. EXECUTE (or N in flight) warps to the burn and flies it.
+
 ## Image generation (optional)
 `Tools/ImageMCP/server.py` is a local MCP server (`karman-images`, registered in `.mcp.json`) for OpenAI and Gemini image
 models. Keys come from `OPENAI_API_KEY` / `GEMINI_API_KEY`. Generation is blocked unless `KARMAN_IMAGE_BUDGET_USD` is

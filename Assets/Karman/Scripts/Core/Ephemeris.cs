@@ -103,6 +103,18 @@ namespace Karman.Core
             return new StateVector(emb.position - moon.position * k, emb.velocity - moon.velocity * k);
         }
 
+        /// <summary>Heliocentric state of any catalogued body at time t (no SolarSystem instance needed).</summary>
+        public static StateVector HeliocentricState(string id, double t)
+        {
+            switch (id)
+            {
+                case SolarSystemData.Sun: return default;
+                case SolarSystemData.Earth: return EarthHeliocentricState(t);
+                case SolarSystemData.Moon: return EarthHeliocentricState(t) + MoonGeocentricState(t);
+                default: return PlanetHeliocentricState(id, t);
+            }
+        }
+
         static double Norm(double deg) { deg %= 360.0; return deg < 0 ? deg + 360.0 : deg; }
     }
 }

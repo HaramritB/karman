@@ -329,6 +329,13 @@ namespace Karman.EditorTools
             map.moonMaterial = moonMat;
             map.bodyTextureIds = planetIds;
             map.bodyTextures = texList.ToArray();
+            var planner = simGo.AddComponent<ManeuverPlanner>();
+            planner.vessel = vessel;
+            var overlay = mapGo.AddComponent<MapPlanningOverlay>();
+            overlay.map = map; overlay.planner = planner; overlay.lineMaterial = lineMat;
+            var planCapture = simGo.AddComponent<PlanningCapture>();
+            planCapture.orbitCamera = orbitCam; planCapture.mapView = map; planCapture.planner = planner;
+
 
             var capture = simGo.AddComponent<AutoCapture>();
             capture.orbitCamera = orbitCam;

@@ -52,6 +52,8 @@ namespace Karman.Flight
         public double DynamicPressure { get; private set; }
         public double Mach { get; private set; }
         public double MaxQ { get; private set; }
+        /// <summary>Cumulative Δv delivered by engines (thrust/mass integrated over time), for burn tracking.</summary>
+        public double DeliveredDeltaV { get; private set; }
         /// <summary>Autopilot override: Unity-world direction the nose should point.</summary>
         public Vector3? AttitudeTarget { get; set; }
         public bool WantsThrust => !Crashed && Throttle > 0 && Vehicle.BurningEngines().Count > 0;
@@ -153,6 +155,13 @@ namespace Karman.Flight
             Vector3d rHat = s * Math.Cos(a) - e * Math.Sin(a);
             double inc = initialInclinationDeg * Constants.Deg2Rad;
             Vector3d h = pole * Math.Cos(inc) + Vector3d.Cross(rHat, pole) * Math.Sin(inc);
+            if (CommandLine.Has("-karmanMoonPlane"))
+            {
+                // Parking orbit in the Moon's orbital plane (for lunar-transfer planning demos).
+                var ms = Ephemeris.MoonGeocentricState(SimulationController.Instance.Time);
+                h = Vector3d.Cross(ms.position, ms.velocity).normalized;
+                rHat = (rHat - h * Vector3d.Dot(rHat, h)).normalized;
+            }
             Vector3d vHat = Vector3d.Cross(h, rHat).normalized;
             double rp = earth.Radius + initialPeriapsisAlt, ra = earth.Radius + initialApoapsisAlt;
             double sma = (rp + ra) / 2;
@@ -235,6 +244,7 @@ namespace Karman.Flight
             CurrentThrust = realTime ? Vehicle.Burn(Throttle, dt, Air.Pressure, out isp, out maxT) : 0;
             CurrentIsp = isp; CurrentMaxThrust = maxT;
             Vector3d thrustAccel = Coords.ToSim(attitude * Vector3.up) * (CurrentThrust / m0);
+            DeliveredDeltaV += CurrentThrust / m0 * dt;
 
             if (Landed)
             {
@@ -353,6 +363,16 @@ namespace Karman.Flight
         {
             if (Trajectory == null) return;
             transform.SetPositionAndRotation(RenderFrame.Local(Trajectory.HeliocentricPosition), attitude);
+        }
+
+        /// <summary>Vacuum thrust of the engines that would burn now (lit engines, else the next stage's).</summary>
+        public double CurrentMaxThrustEstimate()
+        {
+            double t = 0;
+            foreach (var id in Vehicle.BurningEngines()) t += Vehicle.Def(Vehicle.Craft.Get(id)).Engine.VacuumThrust;
+            if (t > 0) return t;
+            foreach (var s in Vehicle.Analyse().Stages) if (s.Thrust > 0) return s.Thrust;
+            return 1;
         }
 
         public void SetAttitude(Quaternion q) { attitude = q; AngularVelocity = Vector3.zero; }

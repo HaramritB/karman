@@ -38,8 +38,16 @@
 - [ ] Aerodynamic torques/lift, reentry heating, parachutes (Phase 5), real terrain DEM tiles, launch audio
 - [ ] Navball heading labels; free/tracking/cinematic cameras
 
-## Phase 4–6
-Maneuver nodes & encounters · lunar landing & return · polish. See the brief.
+## Phase 4 — Orbital mechanics and mission planning ✅ first pass (2026-11-19)
+- [x] Maneuver nodes (prograde/normal/radial), rocket-equation burn time, click-to-place on the trajectory, Δv/time editor
+- [x] Patched-conic predictor: analytic SOI exits, sampled+bisected SOI entries, impacts, closest approach to a target
+- [x] Planned trajectory, encounter, apsis and node markers on the map; target Moon with relative inclination
+- [x] Planning helpers: node at Ap/Pe, circularise, trans-lunar injection planner (periselene targeting by bisection)
+- [x] Node execution autopilot (warp to burn, steer to Δv vector, throttle-down, staging); HUD and navball MNV marker
+- [ ] Vessel-to-vessel rendezvous (needs a second active/passive vessel); multiple nodes
+
+## Phase 5–6
+Lunar landing & return · polish. See the brief.
 
 ## Known issues
 - Ground near the pad is washed out by atmospheric haze at low altitude, and its procedural detail is coarse.

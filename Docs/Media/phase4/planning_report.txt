@@ -1,0 +1,3 @@
+Node: +40 m/s prograde at Ap, burn 169.1 s; predicted Ap 419.469 km, Pe 320.000 km
+Executed: Burn complete (residual 0.2 m/s); achieved Ap 418.543 km (Δ -926 m), Pe 320.000 km (Δ 0 m)
+TLI plan: 3112 m/s; Moon SOI in 64.0 h; periselene 100.0 km

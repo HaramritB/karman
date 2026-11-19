@@ -20,6 +20,16 @@ namespace Karman.Map
     {
         public const int Layer = 31;
         public static bool IsActive { get; private set; }
+        public static MapView Instance { get; private set; }
+        /// <summary>Metres per map unit, focus position and pixel size for overlays drawn this frame.</summary>
+        public double Scale { get; private set; } = 1;
+        public Vector3d Focus { get; private set; }
+        public float PixelToWorld { get; private set; }
+        public Camera Camera => mapCamera;
+        public VisualElement LabelsRoot => labelsDocument.rootVisualElement;
+        public Vector3 MapPoint(Vector3d helio) => Coords.ToUnity((helio - Focus) / Scale);
+        /// <summary>When true the planning overlay draws the vessel trajectory (patched conics) instead of the simple conic.</summary>
+        public bool ExternalVesselTrajectory;
 
         public Camera mapCamera;
         public Camera flightCamera;
@@ -49,6 +59,8 @@ namespace Karman.Map
         Vector3d apPos, pePos; bool hasAp;
         float nextOrbitRefresh;
         static readonly Quaternion EclipticFrame = Quaternion.AngleAxis(-(float)(Constants.ObliquityJ2000 * Constants.Rad2Deg), Vector3.right);
+
+        void Awake() => Instance = this;
 
         void Start()
         {
@@ -283,6 +295,7 @@ namespace Karman.Map
             float lineWidthPx = 1.6f;
             var panel = labelsDocument.rootVisualElement.panel;
 
+            Scale = scale; Focus = focus; PixelToWorld = pxToWorld;
             Vector3 ToMap(Vector3d helio) => Coords.ToUnity((helio - focus) / scale);
             var sunPos = sim.System.Sun.Position;
             foreach (var m in markers)
@@ -321,7 +334,7 @@ namespace Karman.Map
                 vesselOrbit.widthMultiplier = camDist * pxToWorld * 2.2f;
                 double orbitPx = v.Trajectory.Orbit.PeriapsisRadius / scale / (camDist * pxToWorld);
                 bool visible = orbitPx > 4;
-                vesselOrbit.enabled = visible;
+                vesselOrbit.enabled = visible && !ExternalVesselTrajectory;
                 vesselLabel.text = v.vesselName;
                 PlaceLabel(panel, vesselLabel, vp, 0, visible && InFront(vp));
                 var o = v.Trajectory.Orbit;

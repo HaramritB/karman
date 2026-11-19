@@ -27,7 +27,7 @@ namespace Karman.Diagnostics
         void Start()
         {
             string dir = CommandLine.Value("-karmanCapture");
-            if (string.IsNullOrEmpty(dir)) { enabled = false; return; }
+            if (string.IsNullOrEmpty(dir) || CommandLine.Has("-karmanPlan")) { enabled = false; return; }
             if (SimulationController.Instance.ActiveVessel != null && SimulationController.Instance.ActiveVessel.IsLaunchFromPad) { enabled = false; return; }
             Directory.CreateDirectory(dir);
             StartCoroutine(Run(dir));

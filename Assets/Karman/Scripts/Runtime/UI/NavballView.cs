@@ -23,6 +23,7 @@ namespace Karman.UI
             ("PRO", new Color(0.95f, 0.85f, 0.2f)), ("RET", new Color(0.95f, 0.6f, 0.2f)),
             ("NRM", new Color(0.8f, 0.4f, 1f)), ("ANT", new Color(0.8f, 0.4f, 1f)),
             ("RAD", new Color(0.3f, 0.9f, 1f)), ("RIN", new Color(0.3f, 0.9f, 1f)),
+            ("MNV", new Color(0.35f, 0.6f, 1f)),
         };
         Label[] markers;
         Label heading;
@@ -75,6 +76,7 @@ namespace Karman.UI
         void LateUpdate()
         {
             if (vessel == null || vessel.Trajectory == null || ball == null) return;
+            root.style.display = Karman.Map.MapView.IsActive ? DisplayStyle.None : DisplayStyle.Flex;
             vessel.LocalFrame(out Vector3 up, out Vector3 east, out Vector3 north);
             Quaternion H = Quaternion.LookRotation(north, up);         // ball frame → world
             Quaternion Ainv = Quaternion.Inverse(vessel.Attitude);
@@ -84,11 +86,12 @@ namespace Karman.UI
             Vector3 v = vessel.Trajectory.Altitude < 36_000 ? Coords.ToUnity(vessel.Trajectory.SurfaceVelocity.normalized) : Coords.ToUnity(s.velocity.normalized);
             Vector3 n = Coords.ToUnity(Vector3d.Cross(s.position, s.velocity).normalized);
             Vector3 rad = Vector3.Cross(n, v).normalized;
-            Vector3[] dirs = { v, -v, n, -n, rad, -rad };
+            var burn = Karman.Flight.ManeuverPlanner.Instance?.BurnDirection;
+            Vector3[] dirs = { v, -v, n, -n, rad, -rad, burn ?? Vector3.zero };
             for (int i = 0; i < dirs.Length; i++)
             {
                 Vector3 p = C * (Ainv * dirs[i]);   // navball camera space; visible if facing the camera (z < 0)
-                bool vis = p.z < 0.05f && vessel.Trajectory.OrbitalSpeed > 1;
+                bool vis = p.z < 0.05f && vessel.Trajectory.OrbitalSpeed > 1 && dirs[i].sqrMagnitude > 0.5f;
                 markers[i].style.display = vis ? DisplayStyle.Flex : DisplayStyle.None;
                 if (vis) { markers[i].style.left = 115 + p.x * 112 - 14; markers[i].style.top = 115 - p.y * 112 - 9; }
             }

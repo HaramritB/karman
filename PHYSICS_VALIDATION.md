@@ -44,6 +44,14 @@ Earth heliocentric velocity within 0.05 km/s. GMST at J2000 matches 280.46061837
 - In the built game (automated run, 5× physics warp during ascent): Kármán I Heavy reached **191.0 × 170.3 km,
   i 28.61°, e 0.0016**, max-Q 73.1 kPa, 4,175 m/s left; one further orbit on rails: periapsis change 0.000 m.
 
+## Maneuvers and prediction (Phase 4)
+- Prograde node: post-burn apoapsis matches vis-viva to < 1 m; plane change: Δv = 2v·sin(Δi/2) gives exactly Δi with speed preserved.
+- Burn time formula equals the rocket equation; escape trajectory hands over to the Sun's SOI; deorbit burn predicts impact.
+- Trans-lunar injection planner (coplanar 300 km parking orbit): 3,188 m/s, Moon SOI after 40.5 h, periselene 100.0 km;
+  the step-by-step flight trajectory enters the Moon's SOI within 22 s of the predicted time.
+- In the built game: +40 m/s node at apoapsis predicted Ap 419.469 km; the node autopilot's finite 169 s burn achieved
+  418.543 km (0.2 % low, the expected finite-burn loss) with Pe unchanged.
+
 ## Approximations (documented)
 Rigid vehicle; drag only (no lift or aerodynamic torque yet); attitude authority = pod torque + engine gimbal; point-mass gravity of the dominant body only (no J2, no third-body perturbations yet); fixed ΔT = 69.2 s;
 Moon series truncated (≈ 1.5′); planetary elements valid 1800–2050.
