@@ -39,7 +39,7 @@ namespace Karman.Rendering
             env.planetRadius.Override((float)(earth.Radius * 0.001));
             double alt = c.magnitude - earth.Radius;
             // Clouds and height fog only matter inside the lower atmosphere.
-            if (clouds != null) clouds.enable.Override(alt < 60_000);
+            if (clouds != null) clouds.enable.Override(alt < 8_000);   // the globe's own cloud map takes over above
             if (fog != null) fog.enabled.Override(alt < 150_000);
             if (Time.frameCount % 60 == 10)
             {

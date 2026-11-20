@@ -84,6 +84,8 @@ namespace Karman.Rendering
             bool near = rel.magnitude < 2.5e6;
             if (hideWhenFar) foreach (Transform c in transform) c.gameObject.SetActive(near);
             if (!near) return;
+            // The detailed patch and the globe are lit differently; above a few km the globe alone avoids a visible rim.
+            if (ground) ground.enabled = (RenderFrame.Origin - earth.Position).magnitude - earth.Radius < 4000;
             transform.position = Coords.ToUnity(rel);
             Matrix3d m = earth.Orientation * enuToBody;
             // Local axes: X east, Y up, Z north (already Unity-style), so map columns directly.

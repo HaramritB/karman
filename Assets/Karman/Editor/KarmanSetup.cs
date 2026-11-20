@@ -517,6 +517,7 @@ namespace Karman.EditorTools
             var sky = profile.Add<PhysicallyBasedSky>(true);
             sky.type.Override(PhysicallyBasedSkyModel.EarthAdvanced);
             sky.atmosphericScattering.Override(true);
+            sky.aerosolDensity.Override(sky.aerosolDensity.value * 0.4f);   // clearer limb and less milky Earth from orbit
             var stars = StarsCubemap();
             if (stars != null) { sky.spaceEmissionTexture.Override(stars); sky.spaceEmissionMultiplier.Override(1500f); }
             var exposure = profile.Add<Exposure>(true);
