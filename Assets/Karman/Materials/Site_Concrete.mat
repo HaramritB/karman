@@ -238,7 +238,7 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
-    - _Grime: 0.8
+    - _Grime: 0.45
     - _GrimeScale: 7
     - _HeightAmplitude: 0.02
     - _HeightCenter: 0.5
@@ -337,7 +337,7 @@ Material:
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColorLDR: {r: 0, g: 0, b: 0, a: 1}
-    - _GrimeColor: {r: 0.42, g: 0.4, b: 0.36, a: 1}
+    - _GrimeColor: {r: 0.5, g: 0.48, b: 0.44, a: 1}
     - _InvPrimScale: {r: 1, g: 1, b: 0, a: 0}
     - _IridescenceThicknessRemap: {r: 0, g: 1, b: 0, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}

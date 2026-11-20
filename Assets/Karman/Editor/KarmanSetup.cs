@@ -183,6 +183,7 @@ namespace Karman.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             var earthMat = Mat("Earth", "Karman/Earth");
+            earthMat.SetFloat("_SunIntensity", 2.6f);   // HDRP: the physically based sky adds the atmosphere's light on top
             earthMat.SetTexture("_DayTex", Load<Texture2D>($"{Tex}/Earth/8k_earth_daymap.jpg"));
             earthMat.SetTexture("_NightTex", Load<Texture2D>($"{Tex}/Earth/8k_earth_nightmap.jpg"));
             earthMat.SetTexture("_CloudTex", Load<Texture2D>($"{Tex}/Earth/8k_earth_clouds.jpg"));
@@ -552,6 +553,8 @@ namespace Karman.EditorTools
             shadows.cascadeShadowSplitCount.Override(4);
             var vig = profile.Add<Vignette>(true);
             vig.intensity.Override(0.18f);
+            var mb = profile.Add<MotionBlur>(true); mb.intensity.Override(0f);       // time warp makes motion blur smear everything
+            var dof = profile.Add<DepthOfField>(true); dof.focusMode.Override(DepthOfFieldMode.Off);
             foreach (var c in profile.components) AssetDatabase.AddObjectToAsset(c, profile);
             EditorUtility.SetDirty(profile);
             AssetDatabase.SaveAssets();

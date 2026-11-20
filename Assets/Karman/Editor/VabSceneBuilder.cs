@@ -252,6 +252,7 @@ namespace Karman.EditorTools
             var ssr = profile.Add<ScreenSpaceReflection>(true); ssr.enabled.Override(true);
             var contact = profile.Add<ContactShadows>(true); contact.enable.Override(true); contact.length.Override(0.5f);
             var vig = profile.Add<Vignette>(true); vig.intensity.Override(0.2f);
+            var mb = profile.Add<MotionBlur>(true); mb.intensity.Override(0f);
             foreach (var c in profile.components) AssetDatabase.AddObjectToAsset(c, profile);
             EditorUtility.SetDirty(profile);
             return profile;
