@@ -102,7 +102,8 @@ namespace Karman.EditorTools
             var d = cam.GetComponent<HDAdditionalCameraData>() ?? cam.gameObject.AddComponent<HDAdditionalCameraData>();
             d.antialiasing = HDAdditionalCameraData.AntialiasingMode.TemporalAntialiasing;
             d.clearColorMode = HDAdditionalCameraData.ClearColorMode.Sky;
-            d.stopNaNs = true;   // guards against black blotches from extreme values (Sun) in TAA and bloom
+            d.stopNaNs = true;
+            d.allowDynamicResolution = true; cam.allowDynamicResolution = true;   // quality presets scale the render resolution   // guards against black blotches from extreme values (Sun) in TAA and bloom
             return d;
         }
 
@@ -149,6 +150,7 @@ namespace Karman.EditorTools
             PlayerSettings.resizableWindow = true;
             PlayerSettings.runInBackground = true;
             PlayerSettings.colorSpace = ColorSpace.Linear;
+            PlayerSettings.macRetinaSupport = false;   // render at window points, not 2× Retina pixels (HDRP cost scales with pixels)
             PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneOSX, new[] { GraphicsDeviceType.Metal });
 
         }
@@ -531,7 +533,7 @@ namespace Karman.EditorTools
             if (stars != null) { sky.spaceEmissionTexture.Override(stars); sky.spaceEmissionMultiplier.Override(1500f); }
             var exposure = profile.Add<Exposure>(true);
             exposure.mode.Override(ExposureMode.AutomaticHistogram);
-            exposure.limitMin.Override(12.5f);
+            exposure.limitMin.Override(10.5f);
             exposure.histogramPercentages.Override(new Vector2(55f, 97f));   // meter on the bright subject, not black space
             exposure.limitMax.Override(15.5f);
             exposure.compensation.Override(1.2f);
