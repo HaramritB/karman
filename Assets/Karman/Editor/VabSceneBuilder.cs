@@ -129,13 +129,13 @@ namespace Karman.EditorTools
                 go.transform.LookAt(new Vector3(0, 45, 0));
                 var l = go.AddComponent<Light>();
                 l.type = LightType.Spot; l.spotAngle = 55; l.innerSpotAngle = 30; l.range = 400;
-                KarmanSetup.HdLight(l, 120000f, LightUnit.Lumen);
+                KarmanSetup.HdLight(l, 2.0e7f, LightUnit.Lumen);   // stadium-class floods: ~1500 lux at the vehicle
                 l.color = k % 2 == 0 ? new Color(1f, 0.97f, 0.92f) : new Color(0.92f, 0.96f, 1f);
-                l.shadows = k < 2 ? LightShadows.Soft : LightShadows.None;
+                l.shadows = k < 4 ? LightShadows.Soft : LightShadows.None;
             }
             var fill = new GameObject("Fill").AddComponent<Light>();
             fill.type = LightType.Directional; fill.color = new Color(0.75f, 0.82f, 1f);
-            KarmanSetup.HdLight(fill, 900f, LightUnit.Lux);
+            KarmanSetup.HdLight(fill, 250f, LightUnit.Lux);
             fill.transform.rotation = Quaternion.Euler(55, -30, 0);
             fill.shadows = LightShadows.Soft;
 
@@ -259,7 +259,7 @@ namespace Karman.EditorTools
             var env = profile.Add<VisualEnvironment>(true); env.skyType.Override((int)SkyType.Gradient); env.skyAmbientMode.Override(SkyAmbientMode.Dynamic);
             var grad = profile.Add<GradientSky>(true);
             grad.top.Override(new Color(0.75f, 0.78f, 0.82f)); grad.middle.Override(new Color(0.6f, 0.62f, 0.65f)); grad.bottom.Override(new Color(0.35f, 0.35f, 0.36f));
-            grad.multiplier.Override(1f); grad.skyIntensityMode.Override(SkyIntensityMode.Lux); grad.desiredLuxValue.Override(900f);
+            grad.multiplier.Override(1f); grad.skyIntensityMode.Override(SkyIntensityMode.Lux); grad.desiredLuxValue.Override(400f);
             var exposure = profile.Add<Exposure>(true); exposure.mode.Override(ExposureMode.AutomaticHistogram); exposure.limitMin.Override(6f); exposure.limitMax.Override(12f); exposure.compensation.Override(0.4f);
             var tone = profile.Add<Tonemapping>(true); tone.mode.Override(TonemappingMode.ACES);
             var bloom = profile.Add<Bloom>(true); bloom.intensity.Override(0.2f);
@@ -267,6 +267,9 @@ namespace Karman.EditorTools
             var ssr = profile.Add<ScreenSpaceReflection>(true); ssr.enabled.Override(true);
             var contact = profile.Add<ContactShadows>(true); contact.enable.Override(true); contact.length.Override(0.5f);
             var vig = profile.Add<Vignette>(true); vig.intensity.Override(0.2f);
+            // Light shafts from the high floods through a faint haze in the hall.
+            var fog = profile.Add<Fog>(true); fog.enabled.Override(true); fog.meanFreePath.Override(900f); fog.maximumHeight.Override(250f);
+            fog.enableVolumetricFog.Override(true); fog.albedo.Override(new Color(0.9f, 0.92f, 0.95f));
             var mb = profile.Add<MotionBlur>(true); mb.intensity.Override(0f);
             foreach (var c in profile.components) AssetDatabase.AddObjectToAsset(c, profile);
             EditorUtility.SetDirty(profile);
