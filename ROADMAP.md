@@ -77,6 +77,14 @@
 - [ ] Terrain/vessel shadows on the Moon, sourced detail models (crawler, VAB exterior), more parts, part fuel sliders in
       the VAB, rendezvous with a second vessel, aerodynamic torques, profiler pass
 
+## Phase 7 — High-end renderer (HDRP, 2026-11-20)
+- [x] Unity HDRP: physically based, planet-centred sky (ground to orbit, sunsets, limb, aerial perspective),
+      volumetric clouds near the ground, auto exposure, SSAO, SSR, contact shadows, volumetric fog in the VAB
+- [x] Surface shaders regenerated from HDRP Lit (`Tools/HDRP/make_lit_variants.py`); self-lit shaders ported with
+      physical-unit exposure (`Shaders/HD/KarmanHDUnlit.hlsl`); sun 120,000 lux
+- [x] Camera fill light in space, Sun overflow fix, decal livery (AI emblem + Inter wordmark)
+- [ ] Performance at 4K-class backbuffers (lunar low gate ~21 fps at 3600×2048), vacuum plume look, VAB area lights
+
 ## Known issues
 - Rigid vehicles: no structural loads or aerodynamic torques; attitude authority is idealised (pod torque + gimbal).
 - Pad towers and masts are still box/cylinder geometry (lattice detail only on the service structure).

@@ -1,6 +1,6 @@
 # KÁRMÁN
 
-**Build. Launch. Explore.** A spaceflight and aerospace-engineering simulator for macOS (Unity 6.6, URP, Metal).
+**Build. Launch. Explore.** A spaceflight and aerospace-engineering simulator for macOS (Unity 6.6, HDRP, Metal).
 
 Current state: **Phase 1, Earth-orbit vertical slice.** A NASA Gemini spacecraft in a real 280 × 320 km orbit, with
 the Earth, Moon, Sun and all eight planets placed by analytical JPL/Meeus ephemerides at the real date and time.
