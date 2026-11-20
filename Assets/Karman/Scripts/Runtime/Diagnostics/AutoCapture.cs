@@ -47,6 +47,7 @@ namespace Karman.Diagnostics
                 new Shot { name = "04_earth_terminator", setup = () => Body(SolarSystemData.Earth, 2.6e7, 125, 18) },
                 new Shot { name = "05_earth_nightside", setup = () => Body(SolarSystemData.Earth, 1.5e7, 35, 25) },
                 new Shot { name = "06_moon", setup = () => Body(SolarSystemData.Moon, 6.0e6, 150, 10) },
+                new Shot { name = "06b_sun_close", setup = () => Body(SolarSystemData.Sun, 3.0e9, 20, 5) },
                 new Shot { name = "07_map_earth_system", setup = () => Map("vessel", 3.0e7, 20, 60) },
                 new Shot { name = "08_map_earth_moon", setup = () => Map(SolarSystemData.Earth, 1.2e9, 20, 55) },
                 new Shot { name = "09_map_inner_solar", setup = () => Map(SolarSystemData.Sun, 7.0e11, 20, 50) },

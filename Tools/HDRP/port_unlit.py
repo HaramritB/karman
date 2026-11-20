@@ -25,7 +25,7 @@ for path in sys.argv[1:]:
         typ = m.group(1)
         s = s.replace("#pragma fragment frag", "#pragma fragment KFrag", 1)
         idx = s.index("ENDHLSL", m.end())
-        s = s[:idx] + f"float4 KFrag({typ} i) : SV_Target {{ float4 c = frag(i); c.rgb *= KarmanExposure(); return c; }}\n            " + s[idx:]
+        s = s[:idx] + f"float4 KFrag({typ} i) : SV_Target {{ float4 c = frag(i); c.rgb = min(c.rgb * KarmanExposure(), 30000.0); return c; }}\n            " + s[idx:]
     opaque = '"Queue"="Geometry"' in s or ('"RenderType"="Opaque"' in s and "Transparent" not in s)
     if opaque and "DepthForwardOnly" not in s:
         # insert before the closing brace of the SubShader (second-to-last '}')

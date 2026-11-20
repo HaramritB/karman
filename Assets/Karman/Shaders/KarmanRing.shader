@@ -45,7 +45,7 @@ Shader "Karman/Ring"
                 float shadow = (t.x > 0 && t.x <= t.y) ? 0.08 : 1.0;
                 return half4(c.rgb * _SunIntensity * 0.6 * shadow, c.a);
             }
-            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb *= KarmanExposure(); return c; }
+            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb = min(c.rgb * KarmanExposure(), 30000.0); return c; }
             ENDHLSL
         }
     }

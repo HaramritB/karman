@@ -46,7 +46,7 @@ Shader "Karman/Plume"
                 float3 col = lerp(_EdgeColor.rgb, _Color.rgb, pow(facing, 3.0)) * core * _Intensity * _Throttle * flicker;
                 return half4(col, 0);
             }
-            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb *= KarmanExposure(); return c; }
+            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb = min(c.rgb * KarmanExposure(), 30000.0); return c; }
             ENDHLSL
         }
     }

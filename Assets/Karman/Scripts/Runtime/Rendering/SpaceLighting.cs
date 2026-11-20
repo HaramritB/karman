@@ -21,6 +21,9 @@ namespace Karman.Rendering
         [Range(0, 1)] public float Illumination { get; private set; } = 1;
         [Tooltip("Realtime probe at the focus point: sky and ground reflections on metal and paint near the surface.")]
         public ReflectionProbe skyProbe;
+        [Tooltip("Soft fill from the camera direction in space, so a vessel on its shadowed side is never pitch black.")]
+        public Light cameraFill;
+        public float cameraFillLux = 2500f;
         public Color spaceAmbient = new Color(0.012f, 0.014f, 0.02f);
 
         void LateUpdate()
@@ -93,6 +96,18 @@ namespace Karman.Rendering
             Vector3 d = Coords.ToUnity(sunDirSim).normalized;
             Shader.SetGlobalVector("_KarmanSunDirWS", new Vector4(d.x, d.y, d.z, Illumination));
             if (skyProbe) skyProbe.enabled = false;
+            if (cameraFill)
+            {
+                var cam = Camera.main;
+                if (cam) cameraFill.transform.rotation = Quaternion.LookRotation(cam.transform.forward + cam.transform.up * 0.3f);
+                // Fade in above the dense atmosphere (the sky lights the shadows lower down).
+                var earth = sys.Get(SolarSystemData.Earth);
+                double alt = (focus - earth.Position).magnitude - earth.Radius;
+                float k = Mathf.Clamp01((float)((alt - 20_000) / 40_000));
+                bool nearEarth = alt < 5e6;
+                cameraFill.intensity = cameraFillLux * (nearEarth ? k : 1f);
+                cameraFill.enabled = cameraFill.intensity > 1f;
+            }
         }
     }
 }

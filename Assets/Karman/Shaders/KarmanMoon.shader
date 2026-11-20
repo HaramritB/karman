@@ -65,7 +65,7 @@ Shader "Karman/Moon"
                 col += albedo * _EarthShine * saturate(dot(Nd, normalize(_EarthDir.xyz))) * float3(0.55, 0.65, 0.9);
                 return half4(col, 1);
             }
-            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb *= KarmanExposure(); return c; }
+            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb = min(c.rgb * KarmanExposure(), 30000.0); return c; }
             ENDHLSL
         }
             Pass

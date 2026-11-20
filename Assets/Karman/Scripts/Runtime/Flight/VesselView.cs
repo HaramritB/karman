@@ -174,10 +174,10 @@ namespace Karman.Flight
                 float exit = d.Engine.NozzleExitDiameter > 0 ? d.Engine.NozzleExitDiameter : Mathf.Max(0.5f, d.Engine.VacuumThrust > 2e6 ? d.Diameter * 0.32f : d.Diameter * 0.75f);
                 if (d.Engine.VacuumThrust > 5e6) exit = d.Diameter * 0.32f;
                 float len = exit * (5f + 9f * vac) * (0.6f + 0.4f * throttle);
-                float width = exit * (2.2f + 5f * vac);
+                float width = exit * (2.2f + 3f * vac);
                 kv.Value.transform.localScale = new Vector3(width, len, width);
                 block.SetFloat(ThrottleId, throttle);
-                block.SetFloat(IntensityId, Mathf.Lerp(6f, 2.2f, vac));
+                block.SetFloat(IntensityId, Mathf.Lerp(6f, 0.35f, vac * vac));   // vacuum plumes are faint (HDRP exposure brightens dark space)
                 kv.Value.SetPropertyBlock(block);
             }
 

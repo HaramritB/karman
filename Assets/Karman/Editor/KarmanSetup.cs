@@ -102,6 +102,7 @@ namespace Karman.EditorTools
             var d = cam.GetComponent<HDAdditionalCameraData>() ?? cam.gameObject.AddComponent<HDAdditionalCameraData>();
             d.antialiasing = HDAdditionalCameraData.AntialiasingMode.TemporalAntialiasing;
             d.clearColorMode = HDAdditionalCameraData.ClearColorMode.Sky;
+            d.stopNaNs = true;   // guards against black blotches from extreme values (Sun) in TAA and bloom
             return d;
         }
 
@@ -204,6 +205,7 @@ namespace Karman.EditorTools
             var lineMat = Mat("MapLine", "Karman/Line");
             var plumeMat = Mat("Plume", "Karman/Plume");
             var glareMat = Mat("SunGlare", "Karman/Glare");
+            glareMat.SetFloat("_Intensity", 0.25f);   // HDRP bloom already blooms the sun; keep only a faint halo
             var ringMat = Mat("SaturnRing", "Karman/Ring");
             ringMat.SetTexture("_MainTex", Load<Texture2D>($"{Tex}/Planets/2k_saturn_ring_alpha.png"));
             var planetTemplate = Mat("PlanetTemplate", "Karman/Planet");
@@ -226,6 +228,7 @@ namespace Karman.EditorTools
             sunLight.color = new Color(1f, 0.97f, 0.93f);
             var sunHd = HdLight(sunLight, 120000f, LightUnit.Lux);
             sunHd.angularDiameter = 0.53f;
+            sunHd.flareSize = 0.6f; sunHd.flareFalloff = 10f; sunHd.flareMultiplier = 0.6f;   // tight solar corona instead of a screen-wide veil
             sunHd.SetShadowResolution(4096);
             sunLight.shadows = LightShadows.Soft;
             sunLight.shadowResolution = LightShadowResolution.VeryHigh;
@@ -236,6 +239,11 @@ namespace Karman.EditorTools
             shine.type = LightType.Directional;
             shine.color = new Color(0.55f, 0.68f, 1f);
             HdLight(shine, 2000f, LightUnit.Lux);
+            var fillGo = new GameObject("Camera Fill Light");
+            var fill = fillGo.AddComponent<Light>();
+            fill.type = LightType.Directional; fill.color = new Color(0.8f, 0.87f, 1f); fill.shadows = LightShadows.None;
+            var fillHd = HdLight(fill, 2500f, LightUnit.Lux);
+            fillHd.interactsWithSky = false;
             shine.shadows = LightShadows.None;
 
             // Bodies
@@ -315,6 +323,7 @@ namespace Karman.EditorTools
             lighting.skyProbe = probe;
             lighting.sunIntensity = 120000f;
             lighting.earthShineMax = 13000f;
+            lighting.cameraFill = fill;
             Object.DestroyImmediate(probeGo);
             lighting.sunLight = sunLight;
             lighting.planetShineLight = shine;
@@ -522,7 +531,8 @@ namespace Karman.EditorTools
             if (stars != null) { sky.spaceEmissionTexture.Override(stars); sky.spaceEmissionMultiplier.Override(1500f); }
             var exposure = profile.Add<Exposure>(true);
             exposure.mode.Override(ExposureMode.AutomaticHistogram);
-            exposure.limitMin.Override(9f);
+            exposure.limitMin.Override(12.5f);
+            exposure.histogramPercentages.Override(new Vector2(55f, 97f));   // meter on the bright subject, not black space
             exposure.limitMax.Override(15.5f);
             exposure.compensation.Override(1.2f);
             exposure.adaptationSpeedDarkToLight.Override(2.5f);
@@ -530,8 +540,8 @@ namespace Karman.EditorTools
             var tone = profile.Add<Tonemapping>(true);
             tone.mode.Override(TonemappingMode.ACES);
             var bloom = profile.Add<Bloom>(true);
-            bloom.intensity.Override(0.18f);
-            bloom.scatter.Override(0.7f);
+            bloom.intensity.Override(0.12f);
+            bloom.scatter.Override(0.55f);
             var fog = profile.Add<Fog>(true);
             fog.enabled.Override(true);
             fog.meanFreePath.Override(60000f);

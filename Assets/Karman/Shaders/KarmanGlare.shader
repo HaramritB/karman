@@ -30,7 +30,7 @@ Shader "Karman/Glare"
                 float rays = pow(abs(cos(ang * 3.0)), 60.0) * exp(-r * 4.0) * 0.5;
                 return half4(_Color.rgb * (glow + rays) * _Intensity * saturate(1 - r), 0);
             }
-            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb *= KarmanExposure(); return c; }
+            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb = min(c.rgb * KarmanExposure(), 30000.0); return c; }
             ENDHLSL
         }
     }

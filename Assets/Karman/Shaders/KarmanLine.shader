@@ -21,7 +21,7 @@ Shader "Karman/Line"
             struct Varyings { float4 positionCS : SV_POSITION; float4 color : COLOR; };
             Varyings vert(Attributes v) { Varyings o; o.positionCS = TransformObjectToHClip(v.positionOS.xyz); o.color = v.color * _Color; return o; }
             half4 frag(Varyings i) : SV_Target { return i.color; }
-            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb *= KarmanExposure(); return c; }
+            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb = min(c.rgb * KarmanExposure(), 30000.0); return c; }
             ENDHLSL
         }
     }
