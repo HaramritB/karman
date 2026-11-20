@@ -15,3 +15,4 @@ Generations are appended automatically by `Tools/ImageMCP/server.py` (also recor
 
 | Date | Provider | Model | Prompt | Size | Cost | Destination |
 |---|---|---|---|---|---|---|
+| 20261120T005136Z | openai | gpt-image-2.6-sunburst | Original circular space-agency mission emblem for a fictional launch program. Flat modern vector design, no text, no letters, no real logos or insignia. A stylised rocket trajector | 1024×1024 | ~$0.30 (est.) | Assets/Karman/Art/Textures/Decals/karman_emblem_raw.png |

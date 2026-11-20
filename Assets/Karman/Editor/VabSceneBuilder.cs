@@ -189,6 +189,19 @@ namespace Karman.EditorTools
         static PartModelCatalog catalogCache;
 
         /// <summary>Shared part-model catalogue asset (VAB and flight).</summary>
+        static Material DecalMaterial(string name, string texPath)
+        {
+            var imp = (TextureImporter)AssetImporter.GetAtPath(texPath);
+            if (imp != null && (!imp.alphaIsTransparency || imp.wrapMode != TextureWrapMode.Clamp))
+            { imp.alphaIsTransparency = true; imp.wrapMode = TextureWrapMode.Clamp; imp.mipmapEnabled = true; imp.SaveAndReimport(); }
+            var m = KarmanSetup.Mat(name, "HDRP/Decal");
+            m.SetTexture("_BaseColorMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
+            m.SetFloat("_AffectAlbedo", 1); m.SetFloat("_AffectNormal", 0); m.SetFloat("_AffectMetal", 0); m.SetFloat("_AffectAO", 0); m.SetFloat("_AffectSmoothness", 0);
+            HDMaterial.ValidateMaterial(m);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
         public static PartModelCatalog Catalog()
         {
             if (catalogCache != null) return catalogCache;
@@ -202,6 +215,8 @@ namespace Karman.EditorTools
             cat.modelIds = ids; cat.prefabs = prefabs;
             var (names, mats) = PbrMaterials.VehicleSet();
             cat.materialNames = names; cat.materials = mats;
+            cat.wordmarkDecal = DecalMaterial("Decal_Wordmark", "Assets/Karman/Art/Textures/Decals/karman_wordmark.png");
+            cat.emblemDecal = DecalMaterial("Decal_Emblem", "Assets/Karman/Art/Textures/Decals/karman_emblem.png");
             EditorUtility.SetDirty(cat);
             AssetDatabase.SaveAssets();
             return catalogCache = cat;

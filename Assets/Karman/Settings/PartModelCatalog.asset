@@ -76,3 +76,5 @@ MonoBehaviour:
   - {fileID: 2100000, guid: f7f9f8936fcfb4161a550abdca26fbd7, type: 2}
   - {fileID: 2100000, guid: 6d5b8752824bf48358e18224dba69cd7, type: 2}
   - {fileID: 2100000, guid: edd22d81059bb4277bb033b47b645624, type: 2}
+  wordmarkDecal: {fileID: 2100000, guid: 1bba9dfb66d7a458b910b1c4d2cfb26e, type: 2}
+  emblemDecal: {fileID: 2100000, guid: d1cbe1e0e371c47999af844b33b1c068, type: 2}

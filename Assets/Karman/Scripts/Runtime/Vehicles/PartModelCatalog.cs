@@ -13,6 +13,8 @@ namespace Karman.Vehicles
         [Tooltip("Imported material names replaced by curated PBR materials.")]
         public string[] materialNames = Array.Empty<string>();
         public Material[] materials = Array.Empty<Material>();
+        [Tooltip("HDRP decal materials: vertical KÁRMÁN wordmark on long core tanks, mission emblem on mid tanks.")]
+        public Material wordmarkDecal, emblemDecal;
 
         public GameObject Create(PartDefinition def, Transform parent)
         {
@@ -36,7 +38,32 @@ namespace Karman.Vehicles
                     if (changed) r.sharedMaterials = mats;
                     r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
                 }
+            AddDecals(def, go);
             return go;
+        }
+
+        /// <summary>Livery: projected decals that follow the part (HDRP decal projectors parented to it).</summary>
+        void AddDecals(PartDefinition def, GameObject go)
+        {
+            float r = def.Diameter / 2f;
+            if (def.ModelId == "tank_32" && wordmarkDecal != null)
+                foreach (float side in new[] { 1f, -1f })
+                    Decal(go.transform, wordmarkDecal, new Vector3(0, 2f, side * r), new Vector3(0, 0, -side), new Vector3(16f, 2.5f, 1.4f));
+            if (def.ModelId == "tank_16" && emblemDecal != null)
+                Decal(go.transform, emblemDecal, new Vector3(0, 1.5f, r), Vector3.back, new Vector3(2.6f, 2.6f, 1.4f));
+        }
+
+        static void Decal(Transform parent, Material m, Vector3 pos, Vector3 inward, Vector3 size)
+        {
+            var d = new GameObject("Decal " + m.name);
+            d.transform.SetParent(parent, false);
+            d.transform.localPosition = pos;
+            // Texture u runs along the vehicle axis (vertical lettering): right = up, forward = into the tank.
+            d.transform.localRotation = Quaternion.LookRotation(inward, Vector3.Cross(inward, Vector3.up));
+            var p = d.AddComponent<UnityEngine.Rendering.HighDefinition.DecalProjector>();
+            p.material = m; p.size = size; p.pivot = Vector3.zero;
+            p.startAngleFade = 55f; p.endAngleFade = 80f;
+            p.fadeFactor = 1f;
         }
     }
 
