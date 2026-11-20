@@ -83,47 +83,16 @@ namespace Karman.Rendering
         }
     
         /// <summary>
-        /// Inside an atmosphere the sky lights everything: blue from above, a bright horizon band and warm ground
-        /// bounce, all oriented to the local vertical (the world frame is camera-relative, so Unity's +Y is not up).
-        /// The reflection probe is enabled only where there is a sky worth reflecting.
+        /// HDRP: ambient light and reflections come from the physically based sky (see PlanetSky), so this only
+        /// publishes the scale that converts the self-lit shaders' old unit-sun colours to physical units, and keeps
+        /// the planet-centred sky aligned with Earth under the floating origin.
         /// </summary>
         void UpdateSkyLight(SolarSystem sys, Vector3d focus, Vector3d sunDirSim)
         {
-            CelestialBody near = null; double bestAlt = double.MaxValue;
-            foreach (var b in sys.Bodies)
-            {
-                if (b.Definition.Atmosphere == null) continue;
-                double alt = (focus - b.Position).magnitude - b.Radius;
-                if (alt < bestAlt) { bestAlt = alt; near = b; }
-            }
-            float air = near == null ? 0 : Mathf.Clamp01(1f - (float)(bestAlt / 70_000.0));
-            air *= air;
-            var sh = new UnityEngine.Rendering.SphericalHarmonicsL2();
-            sh.AddAmbientLight(spaceAmbient);
-            if (air > 0.001f)
-            {
-                Vector3d upSim = (focus - near.Position).normalized;
-                float elev = (float)Vector3d.Dot(upSim, sunDirSim);
-                float day = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(-0.12f, 0.3f, elev)) * Illumination;
-                float dusk = Mathf.Clamp01(1 - Mathf.Abs(elev) * 4) * day;
-                Vector3 up = Coords.ToUnity(upSim).normalized;
-                Color sky = Color.Lerp(new Color(0.20f, 0.33f, 0.58f), new Color(0.45f, 0.36f, 0.42f), dusk) * day * air;
-                Color horizon = Color.Lerp(new Color(0.42f, 0.48f, 0.56f), new Color(0.62f, 0.42f, 0.30f), dusk) * day * air;
-                Color ground = new Color(0.10f, 0.10f, 0.07f) * day * air;
-                sh.AddAmbientLight(horizon * 0.55f);
-                sh.AddDirectionalLight(up, sky, 1.6f);
-                sh.AddDirectionalLight(-up, ground, 1.0f);
-                RenderSettings.reflectionIntensity = Mathf.Lerp(0.35f, 1f, air * day);
-            }
-            else RenderSettings.reflectionIntensity = 0.35f;
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Custom;
-            RenderSettings.ambientProbe = sh;
-            if (skyProbe)
-            {
-                bool on = air > 0.01f;
-                if (skyProbe.enabled != on) skyProbe.enabled = on;
-                skyProbe.transform.position = Vector3.zero; // focus sits at the floating origin
-            }
+            Shader.SetGlobalFloat("_KarmanUnlitScale", sunIntensity / 3.2f);
+            Vector3 d = Coords.ToUnity(sunDirSim).normalized;
+            Shader.SetGlobalVector("_KarmanSunDirWS", new Vector4(d.x, d.y, d.z, Illumination));
+            if (skyProbe) skyProbe.enabled = false;
         }
-}
+    }
 }

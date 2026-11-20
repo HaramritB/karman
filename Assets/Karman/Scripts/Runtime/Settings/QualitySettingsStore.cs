@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace Karman.Settings
 {
@@ -38,7 +38,6 @@ namespace Karman.Settings
         {
             Preset = preset;
             if (save) PlayerPrefs.SetInt("karman.quality", (int)preset);
-            var urp = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
             float renderScale = 1, shadow = 250, atmoSteps = 32; int msaa = 4;
             switch (preset)
             {
@@ -47,9 +46,16 @@ namespace Karman.Settings
                 case QualityPreset.High: renderScale = 1f; msaa = 4; shadow = 250; atmoSteps = 32; TerrainSplitFactor = 1.8f; break;
                 case QualityPreset.Ultra: renderScale = 1f; msaa = 4; shadow = 400; atmoSteps = 48; TerrainSplitFactor = 2.3f; break;
             }
-            if (urp != null) { urp.renderScale = renderScale; urp.msaaSampleCount = msaa; urp.shadowDistance = shadow; }
+            // HDRP: resolution scale via dynamic resolution, shadow range on the sun's shadow settings.
+            DynamicResolutionHandler.SetDynamicResScaler(() => renderScale * 100f, DynamicResScalePolicyType.ReturnsPercentage);
+            foreach (var l in Object.FindObjectsByType<HDAdditionalLightData>(FindObjectsSortMode.None))
+                if (l.GetComponent<Light>().type == LightType.Directional) { var s = l.GetComponent<Light>(); l.SetShadowResolution(preset >= QualityPreset.High ? 4096 : 2048); }
+            HDRPQuality.ShadowDistance = shadow * 4f;
             Shader.SetGlobalFloat("_KarmanAtmoSteps", atmoSteps);
             foreach (var q in Object.FindObjectsByType<Karman.Rendering.TerrainQuadtree>(FindObjectsSortMode.None)) q.splitFactor = TerrainSplitFactor;
         }
-    }
+        }
+
+    /// <summary>Values the HDRP volume profiles read at runtime (set by the quality preset).</summary>
+    public static class HDRPQuality { public static float ShadowDistance = 1000f; }
 }

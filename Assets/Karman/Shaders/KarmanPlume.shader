@@ -10,17 +10,17 @@ Shader "Karman/Plume"
     }
     SubShader
     {
-        Tags { "RenderType"="Transparent" "Queue"="Transparent" "RenderPipeline"="UniversalPipeline" }
+        Tags { "RenderType"="Transparent" "Queue"="Transparent" "RenderPipeline"="HDRenderPipeline" }
         Pass
         {
-            Tags { "LightMode"="UniversalForward" }
+            Tags { "LightMode"="ForwardOnly" }
             Blend One One
             ZWrite Off
             Cull Off
             HLSLPROGRAM
             #pragma vertex vert
-            #pragma fragment frag
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #pragma fragment KFrag
+            #include "HD/KarmanHDUnlit.hlsl"
             CBUFFER_START(UnityPerMaterial)
                 float4 _Color, _EdgeColor;
                 float _Intensity, _Throttle;
@@ -46,6 +46,7 @@ Shader "Karman/Plume"
                 float3 col = lerp(_EdgeColor.rgb, _Color.rgb, pow(facing, 3.0)) * core * _Intensity * _Throttle * flicker;
                 return half4(col, 0);
             }
+            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb *= KarmanExposure(); return c; }
             ENDHLSL
         }
     }

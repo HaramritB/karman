@@ -18,15 +18,15 @@ Shader "Karman/Earth"
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" "RenderPipeline"="UniversalPipeline" "Queue"="Geometry" }
+        Tags { "RenderType"="Opaque" "RenderPipeline"="HDRenderPipeline" "Queue"="Geometry" }
         Pass
         {
             Name "ForwardLit"
-            Tags { "LightMode"="UniversalForward" }
+            Tags { "LightMode"="ForwardOnly" }
             HLSLPROGRAM
             #pragma vertex vert
-            #pragma fragment frag
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #pragma fragment KFrag
+            #include "HD/KarmanHDUnlit.hlsl"
             #include "KarmanCommon.hlsl"
 
             TEXTURE2D(_DayTex); SAMPLER(sampler_DayTex);
@@ -114,6 +114,20 @@ Shader "Karman/Earth"
 
                 return half4(col, 1);
             }
+            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb *= KarmanExposure(); return c; }
+            ENDHLSL
+        }
+            Pass
+        {
+            Name "DepthForwardOnly"
+            Tags { "LightMode"="DepthForwardOnly" }
+            ZWrite On ColorMask 0
+            HLSLPROGRAM
+            #pragma vertex KDepthV
+            #pragma fragment KDepthF
+            #include "HD/KarmanHDUnlit.hlsl"
+            float4 KDepthV(float4 positionOS : POSITION) : SV_POSITION { return TransformWorldToHClip(TransformObjectToWorld(positionOS.xyz)); }
+            void KDepthF() {}
             ENDHLSL
         }
     }

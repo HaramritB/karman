@@ -5,14 +5,14 @@ Shader "Karman/Navball"
     Properties { _Sky ("Sky", Color) = (0.16, 0.42, 0.72, 1) _Ground ("Ground", Color) = (0.42, 0.27, 0.14, 1) }
     SubShader
     {
-        Tags { "RenderType"="Opaque" "RenderPipeline"="UniversalPipeline" }
+        Tags { "RenderType"="Opaque" "RenderPipeline"="HDRenderPipeline" }
         Pass
         {
-            Tags { "LightMode"="UniversalForward" }
+            Tags { "LightMode"="ForwardOnly" }
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "HD/KarmanHDUnlit.hlsl"
             CBUFFER_START(UnityPerMaterial)
                 float4 _Sky, _Ground;
             CBUFFER_END
@@ -35,6 +35,19 @@ Shader "Karman/Navball"
                 float shade = 0.55 + 0.45 * saturate(dot(normalize(i.nWS), float3(0, 0, -1)));
                 return half4(col * shade, 1);
             }
+            ENDHLSL
+        }
+            Pass
+        {
+            Name "DepthForwardOnly"
+            Tags { "LightMode"="DepthForwardOnly" }
+            ZWrite On ColorMask 0
+            HLSLPROGRAM
+            #pragma vertex KDepthV
+            #pragma fragment KDepthF
+            #include "HD/KarmanHDUnlit.hlsl"
+            float4 KDepthV(float4 positionOS : POSITION) : SV_POSITION { return TransformWorldToHClip(TransformObjectToWorld(positionOS.xyz)); }
+            void KDepthF() {}
             ENDHLSL
         }
     }

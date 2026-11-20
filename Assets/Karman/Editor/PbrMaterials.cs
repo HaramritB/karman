@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
+
 
 namespace Karman.EditorTools
 {
@@ -67,19 +67,7 @@ namespace Karman.EditorTools
             return (map.Select(m => m.Item1).ToArray(), map.Select(m => m.Item2).ToArray());
         }
 
-        /// <summary>Adds URP screen-space ambient occlusion to the PC renderer (contact shading for pad, VAB, vehicles).</summary>
-        public static void EnsureSsao()
-        {
-            var data = AssetDatabase.LoadAssetAtPath<UniversalRendererData>("Assets/Settings/PC_Renderer.asset");
-            if (data == null) return;
-            var type = Type.GetType("UnityEngine.Rendering.Universal.ScreenSpaceAmbientOcclusion, Unity.RenderPipelines.Universal.Runtime");
-            if (type == null || data.rendererFeatures.Any(f => f != null && f.GetType() == type)) return;
-            var feature = (ScriptableRendererFeature)ScriptableObject.CreateInstance(type);
-            feature.name = "SSAO";
-            AssetDatabase.AddObjectToAsset(feature, data);
-            data.rendererFeatures.Add(feature);
-            EditorUtility.SetDirty(data);
-            AssetDatabase.SaveAssets();
-        }
+        /// <summary>HDRP: ambient occlusion is a volume override (see the scene volume profiles).</summary>
+        public static void EnsureSsao() { }
     }
 }

@@ -12,7 +12,8 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering.HighDefinition;
+using UnityEditor.Rendering.HighDefinition;
 using UnityEngine.UIElements;
 
 namespace Karman.EditorTools
@@ -50,11 +51,12 @@ namespace Karman.EditorTools
         public static void BuildMac()
         {
             BuildAll();
-            Directory.CreateDirectory("Builds/macOS");
+            string dir = System.Environment.GetEnvironmentVariable("KARMAN_BUILD_DIR") ?? "Builds/macOS";
+            Directory.CreateDirectory(dir);
             var opts = new BuildPlayerOptions
             {
                 scenes = new[] { MenuScenePath, VabScenePath, ScenePath },
-                locationPathName = "Builds/macOS/Karman.app",
+                locationPathName = $"{dir}/Karman.app",
                 target = BuildTarget.StandaloneOSX,
                 options = BuildOptions.None,
             };
@@ -67,23 +69,72 @@ namespace Karman.EditorTools
 
         static void ConfigureRenderPipeline()
         {
-            var urp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset");
-            if (urp == null) { Debug.LogError("PC_RPAsset missing"); return; }
-            urp.supportsCameraDepthTexture = true;
-            urp.supportsHDR = true;
-            urp.msaaSampleCount = 4;
-            urp.shadowDistance = 250f;
-            urp.shadowCascadeCount = 2;
-            urp.renderScale = 1f;
-            EditorUtility.SetDirty(urp);
-            GraphicsSettings.defaultRenderPipeline = urp;
+            const string path = "Assets/Settings/HDRP_Karman.asset";
+            var hd = AssetDatabase.LoadAssetAtPath<HDRenderPipelineAsset>(path);
+            if (hd == null) { hd = ScriptableObject.CreateInstance<HDRenderPipelineAsset>(); AssetDatabase.CreateAsset(hd, path); }
+            var rp = hd.currentPlatformRenderPipelineSettings;
+            rp.supportVolumetricClouds = true;
+            rp.supportVolumetrics = true;
+            rp.supportSSR = true;
+            rp.supportSSAO = true;
+            rp.supportMotionVectors = true;
+            rp.colorBufferFormat = RenderPipelineSettings.ColorBufferFormat.R16G16B16A16; // alpha for the navball render texture
+            rp.supportedLitShaderMode = RenderPipelineSettings.SupportedLitShaderMode.Both;
+            rp.dynamicResolutionSettings.enabled = true;
+            rp.dynamicResolutionSettings.forceResolution = false;
+            rp.hdShadowInitParams.directionalShadowsDepthBits = DepthBits.Depth32;
+            hd.currentPlatformRenderPipelineSettings = rp;
+            EditorUtility.SetDirty(hd);
+            GraphicsSettings.defaultRenderPipeline = hd;
             for (int i = 0; i < QualitySettings.names.Length; i++)
             {
                 QualitySettings.SetQualityLevel(i, false);
-                QualitySettings.renderPipeline = urp;
+                QualitySettings.renderPipeline = hd;
             }
             QualitySettings.SetQualityLevel(QualitySettings.names.Length - 1, false);
             QualitySettings.vSyncCount = 0;
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>HDRP camera: temporal AA, sky-cleared background, post-processing on.</summary>
+        internal static HDAdditionalCameraData HdCamera(Camera cam)
+        {
+            var d = cam.GetComponent<HDAdditionalCameraData>() ?? cam.gameObject.AddComponent<HDAdditionalCameraData>();
+            d.antialiasing = HDAdditionalCameraData.AntialiasingMode.TemporalAntialiasing;
+            d.clearColorMode = HDAdditionalCameraData.ClearColorMode.Sky;
+            return d;
+        }
+
+        /// <summary>Two-sided HDRP Lit-variant material (generated terrain patches have mixed winding).</summary>
+        internal static void DoubleSided(Material m)
+        {
+            m.SetFloat("_DoubleSidedEnable", 1); m.SetFloat("_CullMode", 0); m.SetFloat("_CullModeForward", 0);
+            m.SetFloat("_DoubleSidedNormalMode", 2); m.EnableKeyword("_DOUBLESIDED_ON");
+            EditorUtility.SetDirty(m);
+        }
+
+        /// <summary>HDRP light data with physical units.</summary>
+        internal static HDAdditionalLightData HdLight(Light l, float intensity, LightUnit unit)
+        {
+            var d = l.GetComponent<HDAdditionalLightData>() ?? l.gameObject.AddComponent<HDAdditionalLightData>();
+            l.lightUnit = unit;
+            l.intensity = intensity;
+            return d;
+        }
+
+        /// <summary>Stars panorama as a cubemap for the physically based sky's space emission.</summary>
+        static Cubemap StarsCubemap()
+        {
+            string p = $"{Tex}/Sky/8k_stars_milky_way.jpg";
+            var imp = (TextureImporter)AssetImporter.GetAtPath(p);
+            if (imp != null && imp.textureShape != TextureImporterShape.TextureCube)
+            {
+                imp.textureShape = TextureImporterShape.TextureCube;
+                imp.generateCubemap = TextureImporterGenerateCubemap.Cylindrical;
+                imp.maxTextureSize = 4096;
+                imp.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Cubemap>(p);
         }
 
         static void ConfigurePlayer()
@@ -172,7 +223,9 @@ namespace Karman.EditorTools
             var sunLight = sunLightGo.AddComponent<Light>();
             sunLight.type = LightType.Directional;
             sunLight.color = new Color(1f, 0.97f, 0.93f);
-            sunLight.intensity = 3.2f;
+            var sunHd = HdLight(sunLight, 120000f, LightUnit.Lux);
+            sunHd.angularDiameter = 0.53f;
+            sunHd.SetShadowResolution(4096);
             sunLight.shadows = LightShadows.Soft;
             sunLight.shadowResolution = LightShadowResolution.VeryHigh;
             sunLight.shadowNormalBias = 0.2f;
@@ -181,7 +234,7 @@ namespace Karman.EditorTools
             var shine = shineGo.AddComponent<Light>();
             shine.type = LightType.Directional;
             shine.color = new Color(0.55f, 0.68f, 1f);
-            shine.intensity = 0.2f;
+            HdLight(shine, 2000f, LightUnit.Lux);
             shine.shadows = LightShadows.None;
 
             // Bodies
@@ -191,17 +244,19 @@ namespace Karman.EditorTools
             var sphereLo = SaveMesh(SphereMeshFactory.CubeSphere(48), "CubeSphere48");
 
             var earthView = MakeBody(bodiesRoot, SolarSystemData.Earth, BodyShading.Earth, earthMat, sphereHi);
+            /* HDRP: the physically based sky renders Earth's atmosphere (sky, limb glow, aerial perspective).
             var atmoGo = new GameObject("Atmosphere");
             atmoGo.transform.SetParent(earthView.transform, false);
             atmoGo.AddComponent<MeshFilter>().sharedMesh = sphereMid;
             var atmoR = atmoGo.AddComponent<MeshRenderer>();
             atmoR.sharedMaterial = atmoMat;
             atmoR.shadowCastingMode = ShadowCastingMode.Off;
-            earthView.atmosphere = atmoR;
+            earthView.atmosphere = atmoR; */
             var moonView = MakeBody(bodiesRoot, SolarSystemData.Moon, BodyShading.Moon, moonMat, sphereHi);
             var loader = simGo.AddComponent<TerrainLoader>();
             loader.moonDem = Load<TextAsset>($"{Root}/Data/Moon/moon_dem16.bytes");
             var moonTerrainMat = Mat("MoonTerrain", "Karman/MoonTerrain");
+            DoubleSided(moonTerrainMat);
             moonTerrainMat.SetTexture("_ColorTex", Load<Texture2D>($"{Tex}/Moon/moon_color_4k.png"));
             moonTerrainMat.SetTexture("_NearDiff", PbrMaterials.Tex("gravelly_sand", "diff"));
             moonTerrainMat.SetTexture("_NearNor", PbrMaterials.Tex("gravelly_sand", "nor"));
@@ -257,6 +312,9 @@ namespace Karman.EditorTools
             probe.cullingMask = ~(1 << 30);
             probe.clearFlags = ReflectionProbeClearFlags.Skybox;
             lighting.skyProbe = probe;
+            lighting.sunIntensity = 120000f;
+            lighting.earthShineMax = 13000f;
+            Object.DestroyImmediate(probeGo);
             lighting.sunLight = sunLight;
             lighting.planetShineLight = shine;
             lighting.glare = glare.transform;
@@ -286,11 +344,7 @@ namespace Karman.EditorTools
             cam.clearFlags = CameraClearFlags.Skybox;
             cam.fieldOfView = 55;
             cam.allowHDR = true;
-            cam.allowMSAA = true;
-            var camData = camGo.AddComponent<UniversalAdditionalCameraData>();
-            camData.renderPostProcessing = true;
-            camData.antialiasing = AntialiasingMode.None;
-            camData.requiresDepthTexture = true;
+            HdCamera(cam);
             var orbitCam = camGo.AddComponent<OrbitCamera>();
             camGo.AddComponent<AudioListener>();
 
@@ -299,14 +353,14 @@ namespace Karman.EditorTools
             mapCam.clearFlags = CameraClearFlags.Skybox;
             mapCam.fieldOfView = 50;
             mapCam.allowHDR = true;
-            var mapData = mapCamGo.AddComponent<UniversalAdditionalCameraData>();
-            mapData.renderPostProcessing = true;
+            HdCamera(mapCam);
 
             // Post-processing
             var volGo = new GameObject("Global Volume");
             var vol = volGo.AddComponent<Volume>();
             vol.isGlobal = true;
             vol.sharedProfile = BuildVolumeProfile();
+            volGo.AddComponent<PlanetSky>().volume = vol;
 
             // UI
             var panel = BuildPanelSettings();
@@ -451,20 +505,53 @@ namespace Karman.EditorTools
             AssetDatabase.DeleteAsset(path);
             var profile = ScriptableObject.CreateInstance<VolumeProfile>();
             AssetDatabase.CreateAsset(profile, path);
-            var bloom = profile.Add<Bloom>(true);
-            bloom.threshold.Override(1.1f);
-            bloom.intensity.Override(0.55f);
-            bloom.scatter.Override(0.72f);
-            bloom.highQualityFiltering.Override(true);
+            // Planet-centred physically based sky (Earth): sky colour, sunsets, the limb seen from orbit and aerial
+            // perspective on all geometry. PlanetSky moves its centre with the floating origin.
+            var env = profile.Add<VisualEnvironment>(true);
+            env.skyType.Override((int)SkyType.PhysicallyBased);
+            env.skyAmbientMode.Override(SkyAmbientMode.Dynamic);
+            env.planetRadius.Override(6371f);
+            env.centerMode.Override(VisualEnvironment.PlanetMode.Manual);
+            env.renderingSpace.Override(RenderingSpace.World);
+            var sky = profile.Add<PhysicallyBasedSky>(true);
+            sky.type.Override(PhysicallyBasedSkyModel.EarthAdvanced);
+            sky.atmosphericScattering.Override(true);
+            var stars = StarsCubemap();
+            if (stars != null) { sky.spaceEmissionTexture.Override(stars); sky.spaceEmissionMultiplier.Override(1500f); }
+            var exposure = profile.Add<Exposure>(true);
+            exposure.mode.Override(ExposureMode.AutomaticHistogram);
+            exposure.limitMin.Override(9f);
+            exposure.limitMax.Override(15.5f);
+            exposure.compensation.Override(1.2f);
+            exposure.adaptationSpeedDarkToLight.Override(2.5f);
+            exposure.adaptationSpeedLightToDark.Override(1.5f);
             var tone = profile.Add<Tonemapping>(true);
             tone.mode.Override(TonemappingMode.ACES);
-            var color = profile.Add<ColorAdjustments>(true);
-            color.postExposure.Override(0.15f);
-            color.contrast.Override(8f);
-            color.saturation.Override(4f);
+            var bloom = profile.Add<Bloom>(true);
+            bloom.intensity.Override(0.18f);
+            bloom.scatter.Override(0.7f);
+            var fog = profile.Add<Fog>(true);
+            fog.enabled.Override(true);
+            fog.meanFreePath.Override(60000f);
+            fog.maxFogDistance.Override(200000f);
+            fog.baseHeight.Override(0f);
+            fog.maximumHeight.Override(3000f);
+            var clouds = profile.Add<VolumetricClouds>(true);
+            clouds.enable.Override(true);
+            clouds.cloudPreset = VolumetricClouds.CloudPresets.Sparse;
+            var ao = profile.Add<ScreenSpaceAmbientOcclusion>(true);
+            ao.intensity.Override(1.2f);
+            ao.radius.Override(1.5f);
+            var ssr = profile.Add<ScreenSpaceReflection>(true);
+            ssr.enabled.Override(true);
+            var contact = profile.Add<ContactShadows>(true);
+            contact.enable.Override(true);
+            contact.length.Override(0.4f);
+            var shadows = profile.Add<HDShadowSettings>(true);
+            shadows.maxShadowDistance.Override(1500f);
+            shadows.cascadeShadowSplitCount.Override(4);
             var vig = profile.Add<Vignette>(true);
-            vig.intensity.Override(0.2f);
-            vig.smoothness.Override(0.5f);
+            vig.intensity.Override(0.18f);
             foreach (var c in profile.components) AssetDatabase.AddObjectToAsset(c, profile);
             EditorUtility.SetDirty(profile);
             AssetDatabase.SaveAssets();

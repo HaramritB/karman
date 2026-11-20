@@ -4,18 +4,18 @@ Shader "Karman/Glare"
     Properties { _Color ("Colour", Color) = (1, 0.92, 0.8, 1) _Intensity ("Intensity", Float) = 2 }
     SubShader
     {
-        Tags { "RenderType"="Transparent" "Queue"="Transparent+20" "RenderPipeline"="UniversalPipeline" }
+        Tags { "RenderType"="Transparent" "Queue"="Transparent+20" "RenderPipeline"="HDRenderPipeline" }
         Pass
         {
-            Tags { "LightMode"="UniversalForward" }
+            Tags { "LightMode"="ForwardOnly" }
             Blend One One
             ZWrite Off
             ZTest LEqual
             Cull Off
             HLSLPROGRAM
             #pragma vertex vert
-            #pragma fragment frag
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #pragma fragment KFrag
+            #include "HD/KarmanHDUnlit.hlsl"
             CBUFFER_START(UnityPerMaterial)
                 float4 _Color; float _Intensity;
             CBUFFER_END
@@ -30,6 +30,7 @@ Shader "Karman/Glare"
                 float rays = pow(abs(cos(ang * 3.0)), 60.0) * exp(-r * 4.0) * 0.5;
                 return half4(_Color.rgb * (glow + rays) * _Intensity * saturate(1 - r), 0);
             }
+            float4 KFrag(Varyings i) : SV_Target { float4 c = frag(i); c.rgb *= KarmanExposure(); return c; }
             ENDHLSL
         }
     }

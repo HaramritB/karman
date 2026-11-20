@@ -42,6 +42,14 @@ namespace Karman.UI
             cam.orthographic = true; cam.orthographicSize = 1.0f; cam.cullingMask = 1 << Layer;
             cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0, 0, 0, 0);
             cam.targetTexture = rt; cam.nearClipPlane = 0.1f; cam.farClipPlane = 10;
+            // HDRP: transparent background, no post-processing or exposure on the instrument.
+            var hd = cgo.AddComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalCameraData>();
+            hd.clearColorMode = UnityEngine.Rendering.HighDefinition.HDAdditionalCameraData.ClearColorMode.Color;
+            hd.backgroundColorHDR = new Color(0, 0, 0, 0);
+            hd.customRenderingSettings = true;
+            hd.renderingPathCustomFrameSettingsOverrideMask.mask[(uint)UnityEngine.Rendering.HighDefinition.FrameSettingsField.Postprocess] = true;
+            hd.renderingPathCustomFrameSettings.SetEnabled(UnityEngine.Rendering.HighDefinition.FrameSettingsField.Postprocess, false);
+            hd.volumeLayerMask = 0;
             cgo.transform.SetPositionAndRotation(ball.position + Vector3.back * 3, Quaternion.identity);
             foreach (var c in Camera.allCameras) if (c != cam) c.cullingMask &= ~(1 << Layer);
 

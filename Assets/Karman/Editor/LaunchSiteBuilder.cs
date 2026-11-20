@@ -4,6 +4,7 @@ using Karman.Rendering;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace Karman.EditorTools
 {
@@ -16,7 +17,7 @@ namespace Karman.EditorTools
     {
         static Material Lit(string name, Color c, float smooth, float metal = 0)
         {
-            var m = KarmanSetup.Mat(name, "Universal Render Pipeline/Lit");
+            var m = KarmanSetup.Mat(name, "HDRP/Lit");
             m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", smooth); m.SetFloat("_Metallic", metal);
             EditorUtility.SetDirty(m);
             return m;
@@ -75,6 +76,7 @@ namespace Karman.EditorTools
 
             // Ground patch sampling the same imagery as the globe.
             var groundMat = KarmanSetup.Mat("LaunchSiteGround", "Karman/Ground");
+            KarmanSetup.DoubleSided(groundMat);
             groundMat.SetTexture("_DayTex", earthMat.GetTexture("_DayTex"));
             groundMat.SetTexture("_NightTex", earthMat.GetTexture("_NightTex"));
             groundMat.SetTexture("_SpecTex", earthMat.GetTexture("_SpecTex"));
@@ -106,7 +108,7 @@ namespace Karman.EditorTools
             // through the mound with a deflector under the vehicle, a steel launch mount spanning the trench and a ramp.
             var grassSlope = PbrMaterials.Triplanar("Site_GrassSlope", "sparse_grass", new Color(1.0f, 1.45f, 0.95f), 3f, 0, 1f, 1f, 1f, 0.6f, 2);
             var sooty = PbrMaterials.Weathered(PbrMaterials.Triplanar("Site_TrenchConcrete", "concrete_floor_worn_001", new Color(1.5f, 1.45f, 1.4f), 6f, 0, 1f, 1f, 1f, 0.3f, 2), 0.9f, 3f, new Color(0.12f, 0.11f, 0.10f));
-            PbrMaterials.Weathered(concrete, 0.8f, 7f, new Color(0.42f, 0.4f, 0.36f));
+            PbrMaterials.Weathered(concrete, 0.45f, 7f, new Color(0.5f, 0.48f, 0.44f));
             concrete.SetFloat("_Panel", 6f);
             PbrMaterials.Weathered(grassSlope, 0.9f, 10f, new Color(0.55f, 0.62f, 0.4f));
             PbrMaterials.Weathered(darkConcrete, 0.5f, 6f, new Color(0.35f, 0.33f, 0.3f));
@@ -227,7 +229,8 @@ namespace Karman.EditorTools
                 lg.transform.localPosition = new Vector3(Mathf.Cos(a) * 75, 50, Mathf.Sin(a) * 75);
                 lg.transform.LookAt(lg.transform.parent.TransformPoint(new Vector3(0, 40, 0)));
                 var l = lg.AddComponent<Light>();
-                l.type = LightType.Spot; l.spotAngle = 40; l.range = 260; l.intensity = 1500; l.color = new Color(1f, 0.93f, 0.82f);
+                l.type = LightType.Spot; l.spotAngle = 40; l.range = 600; l.color = new Color(1f, 0.93f, 0.82f);
+                KarmanSetup.HdLight(l, 2_000_000f, LightUnit.Lumen);
                 l.shadows = LightShadows.None;
             }
 
@@ -286,14 +289,8 @@ namespace Karman.EditorTools
                 File.WriteAllBytes(texPath, tex.EncodeToPNG());
                 AssetDatabase.ImportAsset(texPath);
             }
-            var m = KarmanSetup.Mat("PadSmoke", "Universal Render Pipeline/Particles/Unlit");
-            m.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
-            m.SetFloat("_Surface", 1); // transparent
-            m.SetFloat("_Blend", 0);
-            m.SetOverrideTag("RenderType", "Transparent");
-            m.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha); m.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha); m.SetInt("_ZWrite", 0);
-            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            m.renderQueue = (int)RenderQueue.Transparent;
+            var m = KarmanSetup.Mat("PadSmoke", "Karman/Smoke");
+            m.SetTexture("_MainTex", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
             EditorUtility.SetDirty(m);
             return m;
         }

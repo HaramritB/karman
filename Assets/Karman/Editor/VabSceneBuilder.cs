@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.UIElements;
 
 namespace Karman.EditorTools
@@ -17,16 +17,16 @@ namespace Karman.EditorTools
 
         static Material Lit(string name, Color c, float smooth, float metal = 0, Color? emission = null)
         {
-            var m = KarmanSetup.Mat(name, "Universal Render Pipeline/Lit");
+            var m = KarmanSetup.Mat(name, "HDRP/Lit");
             m.SetColor("_BaseColor", c);
             m.SetFloat("_Smoothness", smooth);
             m.SetFloat("_Metallic", metal);
             if (emission.HasValue)
             {
-                m.EnableKeyword("_EMISSION");
-                m.SetColor("_EmissionColor", emission.Value);
+                m.SetColor("_EmissiveColor", emission.Value * 1500f);   // nits
                 m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             }
+            HDMaterial.ValidateMaterial(m);
             EditorUtility.SetDirty(m);
             return m;
         }
@@ -128,17 +128,21 @@ namespace Karman.EditorTools
                 go.transform.position = new Vector3(Mathf.Cos(a) * 80, H - 14, Mathf.Sin(a) * 80);
                 go.transform.LookAt(new Vector3(0, 45, 0));
                 var l = go.AddComponent<Light>();
-                l.type = LightType.Spot; l.spotAngle = 55; l.innerSpotAngle = 30; l.range = 320; l.intensity = 16000;
+                l.type = LightType.Spot; l.spotAngle = 55; l.innerSpotAngle = 30; l.range = 400;
+                KarmanSetup.HdLight(l, 120000f, LightUnit.Lumen);
                 l.color = k % 2 == 0 ? new Color(1f, 0.97f, 0.92f) : new Color(0.92f, 0.96f, 1f);
                 l.shadows = k < 2 ? LightShadows.Soft : LightShadows.None;
             }
             var fill = new GameObject("Fill").AddComponent<Light>();
-            fill.type = LightType.Directional; fill.intensity = 0.5f; fill.color = new Color(0.75f, 0.82f, 1f);
+            fill.type = LightType.Directional; fill.color = new Color(0.75f, 0.82f, 1f);
+            KarmanSetup.HdLight(fill, 900f, LightUnit.Lux);
             fill.transform.rotation = Quaternion.Euler(55, -30, 0);
             fill.shadows = LightShadows.Soft;
 
             // Reflections of the bright hall on paint and metal (rendered once on load).
             var probe = new GameObject("Hall Reflection Probe").AddComponent<ReflectionProbe>();
+            var probeHd = probe.gameObject.GetComponent<HDAdditionalReflectionData>() ?? probe.gameObject.AddComponent<HDAdditionalReflectionData>();
+            probeHd.mode = ProbeSettings.Mode.Realtime; probeHd.realtimeMode = ProbeSettings.RealtimeMode.OnEnable;
             probe.transform.position = new Vector3(0, 50, 30);
             probe.mode = UnityEngine.Rendering.ReflectionProbeMode.Realtime;
             probe.refreshMode = UnityEngine.Rendering.ReflectionProbeRefreshMode.OnAwake;
@@ -151,7 +155,7 @@ namespace Karman.EditorTools
             var cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.62f, 0.65f, 0.69f);
             cam.nearClipPlane = 0.3f; cam.farClipPlane = 1500; cam.fieldOfView = 45; cam.allowHDR = true;
-            camGo.AddComponent<UniversalAdditionalCameraData>().renderPostProcessing = true;
+            KarmanSetup.HdCamera(cam);
             camGo.AddComponent<AudioListener>();
 
             var vabGo = new GameObject("VAB");
@@ -236,10 +240,18 @@ namespace Karman.EditorTools
             AssetDatabase.DeleteAsset(path);
             var profile = ScriptableObject.CreateInstance<VolumeProfile>();
             AssetDatabase.CreateAsset(profile, path);
-            var bloom = profile.Add<Bloom>(true); bloom.threshold.Override(1.0f); bloom.intensity.Override(0.6f); bloom.scatter.Override(0.65f);
+            // Indoor hall: soft grey gradient sky for ambient fill, auto exposure tuned for interiors.
+            var env = profile.Add<VisualEnvironment>(true); env.skyType.Override((int)SkyType.Gradient); env.skyAmbientMode.Override(SkyAmbientMode.Dynamic);
+            var grad = profile.Add<GradientSky>(true);
+            grad.top.Override(new Color(0.75f, 0.78f, 0.82f)); grad.middle.Override(new Color(0.6f, 0.62f, 0.65f)); grad.bottom.Override(new Color(0.35f, 0.35f, 0.36f));
+            grad.multiplier.Override(1f); grad.skyIntensityMode.Override(SkyIntensityMode.Lux); grad.desiredLuxValue.Override(900f);
+            var exposure = profile.Add<Exposure>(true); exposure.mode.Override(ExposureMode.AutomaticHistogram); exposure.limitMin.Override(6f); exposure.limitMax.Override(12f); exposure.compensation.Override(0.4f);
             var tone = profile.Add<Tonemapping>(true); tone.mode.Override(TonemappingMode.ACES);
-            var color = profile.Add<ColorAdjustments>(true); color.postExposure.Override(0.3f); color.contrast.Override(10f);
-            var vig = profile.Add<Vignette>(true); vig.intensity.Override(0.25f);
+            var bloom = profile.Add<Bloom>(true); bloom.intensity.Override(0.2f);
+            var ao = profile.Add<ScreenSpaceAmbientOcclusion>(true); ao.intensity.Override(1.3f); ao.radius.Override(2f);
+            var ssr = profile.Add<ScreenSpaceReflection>(true); ssr.enabled.Override(true);
+            var contact = profile.Add<ContactShadows>(true); contact.enable.Override(true); contact.length.Override(0.5f);
+            var vig = profile.Add<Vignette>(true); vig.intensity.Override(0.2f);
             foreach (var c in profile.components) AssetDatabase.AddObjectToAsset(c, profile);
             EditorUtility.SetDirty(profile);
             return profile;
