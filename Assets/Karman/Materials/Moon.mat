@@ -33,10 +33,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Albedo: 0.75
+    - _Albedo: 0.45
     - _EarthShine: 0
     - _NormalStrength: 0.9
-    - _SunIntensity: 4
+    - _SunIntensity: 1
     m_Colors:
     - _EarthDir: {r: 0, g: 0, b: 1, a: 0}
     - _SunDir: {r: 1, g: 0, b: 0, a: 0}

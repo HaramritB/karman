@@ -32,31 +32,51 @@ namespace Karman.Diagnostics
             var quad = FindAnyObjectByType<TerrainQuadtree>();
 
             View(v.Length * 1.8 + 12, 200, 18); yield return Wait(60);
-            Shot(dir, "50_lunar_orbit");
+            yield return CaptureUtil.Shot(dir, "50_lunar_orbit");
             View(v.Length * 1.8 + 12, 160, -8); yield return Wait(30);
-            Shot(dir, "51_lunar_orbit_limb");
+            yield return CaptureUtil.Shot(dir, "51_lunar_orbit_limb");
+
+            // -karmanFast: braking and ascent run at 5× physics warp (same 50 ms physics substeps) to shorten the run.
+            bool fast = CommandLine.Has("-karmanFast");
+            if (fast) autopilot.brakingWarpIndex = SimulationController.MaxPhysicsWarpIndex;
+            log.AppendLine($"Mode: {(fast ? "5× physics warp while braking above 4 km and during ascent" : "real time while braking")}; {Screen.width}x{Screen.height}");
+            Vector3d toSun0 = sim.System.Sun.Position - v.Trajectory.Reference.Position;
+            log.AppendLine($"Start: Sun elevation {Karman.Core.Vehicles.LunarDescentPlanning.SunElevationDeg(v.Trajectory.RelativeState.position, toSun0):F1}° at the sub-vessel point; " +
+                           $"{autopilot.DegreesToDeorbitPoint(v.Trajectory.RelativeState, toSun0):F1}° of orbit to the deorbit point");
 
             autopilot.Engage();
             float t0 = Time.realtimeSinceStartup;
             bool s1 = false, s2 = false, s3 = false;
-            double peakFps = 0;
             while (autopilot.State != LunarAutopilot.Phase.Landed && autopilot.State != LunarAutopilot.Phase.Failed && Time.realtimeSinceStartup - t0 < 1800)
             {
                 double h = v.GroundClearance;
                 if (Time.frameCount % 600 == 0) Debug.Log($"[LunarCapture] state {autopilot.Status} h {h:F0} pe {v.Trajectory.PeriapsisAltitude:F0} warp {sim.Warp} thr {v.Throttle:F2} t {sim.Time:F0}");
-                if (!s1 && h < 9000 && autopilot.State == LunarAutopilot.Phase.Descent) { s1 = true; View(v.Length * 2 + 20, 140, 12); yield return Wait(25); Shot(dir, "52_powered_descent"); log.AppendLine($"Descent at {h:F0} m: {quad?.VisiblePatches} terrain patches visible, {quad?.BuiltPatches} built, {1f / Time.smoothDeltaTime:F0} fps"); }
-                if (!s2 && h < 1500) { s2 = true; View(v.Length * 1.6 + 14, 120, 6); yield return Wait(25); Shot(dir, "53_low_gate"); log.AppendLine($"Low gate {h:F0} m: {quad?.VisiblePatches} patches, {1f / Time.smoothDeltaTime:F0} fps"); }
-                if (!s3 && h < 150) { s3 = true; View(v.Length * 1.4 + 10, 100, 4); yield return Wait(15); Shot(dir, "54_terminal"); }
+                if (!s1 && h < 9000 && autopilot.State == LunarAutopilot.Phase.Descent)
+                {
+                    s1 = true; View(v.Length * 2 + 20, 140, 12); yield return Wait(25);
+                    yield return CaptureUtil.Measure(1f, f => log.AppendLine($"Descent at {h:F0} m: {quad?.VisiblePatches} terrain patches visible, {quad?.BuiltPatches} built, {f.Fps:F0} fps (worst frame {f.WorstMs:F1} ms)"));
+                    yield return CaptureUtil.Shot(dir, "52_powered_descent");
+                }
+                if (!s2 && h < 1500)
+                {
+                    s2 = true; View(v.Length * 1.6 + 14, 120, 6); yield return Wait(25);
+                    yield return CaptureUtil.Measure(1f, f => log.AppendLine($"Low gate {h:F0} m: {quad?.VisiblePatches} patches visible, {quad?.BuiltPatches} built, {f.Fps:F0} fps (worst frame {f.WorstMs:F1} ms)"));
+                    yield return CaptureUtil.Shot(dir, "53_low_gate");
+                }
+                if (!s3 && h < 150) { s3 = true; View(v.Length * 1.4 + 10, 100, 4); yield return Wait(15); yield return CaptureUtil.Shot(dir, "54_terminal"); }
                 yield return null;
             }
             log.AppendLine($"Descent result: {autopilot.State}; touchdown v={v.LastTouchdown.x:F2} m/s vertical, {v.LastTouchdown.y:F2} m/s horizontal, tilt {v.LastTouchdown.z:F1}°");
             v.Trajectory.LatLon(out double lat, out double lon);
             log.AppendLine($"Site {lat * Constants.Rad2Deg:F3}°, {lon * Constants.Rad2Deg:F3}°, terrain height {v.TerrainHeight:F0} m; propellant left {v.Vehicle.PropellantRemaining:F0} kg");
+            Vector3d toSun = sim.System.Sun.Position - v.Trajectory.Reference.Position;
+            log.AppendLine($"Sun elevation at the site: {Karman.Core.Vehicles.LunarDescentPlanning.SunElevationDeg(v.Trajectory.RelativeState.position, toSun):F1}°");
             yield return Wait(60);
             View(v.Length * 2.2 + 25, 150, 10); yield return Wait(40);
-            Shot(dir, "55_landed");
+            yield return CaptureUtil.Measure(1f, f => log.AppendLine($"Landed: {quad?.VisiblePatches} patches visible, {quad?.BuiltPatches} built, {f.Fps:F0} fps (worst frame {f.WorstMs:F1} ms)"));
+            yield return CaptureUtil.Shot(dir, "55_landed");
             View(v.Length * 6 + 80, 200, 6); yield return Wait(40);
-            Shot(dir, "56_landed_wide");
+            yield return CaptureUtil.Shot(dir, "56_landed_wide");
 
             if (autopilot.State == LunarAutopilot.Phase.Landed)
             {
@@ -65,13 +85,14 @@ namespace Karman.Diagnostics
                 bool a1 = false;
                 while (autopilot.State == LunarAutopilot.Phase.Ascent && Time.realtimeSinceStartup - t0 < 1500)
                 {
-                    if (!a1 && v.GroundClearance > 300) { a1 = true; View(v.Length * 2 + 25, 180, -4); yield return Wait(15); Shot(dir, "57_ascent"); }
+                    if (fast && sim.WarpIndex < SimulationController.MaxPhysicsWarpIndex) sim.SetWarp(SimulationController.MaxPhysicsWarpIndex);
+                    if (!a1 && v.GroundClearance > 300) { a1 = true; View(v.Length * 2 + 25, 180, -4); yield return Wait(15); yield return CaptureUtil.Shot(dir, "57_ascent"); }
                     yield return null;
                 }
                 var o = v.Trajectory.Orbit;
                 log.AppendLine($"Ascent result: {autopilot.State}; orbit {(o.PeriapsisRadius - v.Trajectory.Reference.Radius) / 1000:F1} × {(o.ApoapsisRadius - v.Trajectory.Reference.Radius) / 1000:F1} km; propellant left {v.Vehicle.PropellantRemaining:F0} kg");
                 View(v.Length * 2 + 15, 210, 20); yield return Wait(30);
-                Shot(dir, "58_back_in_orbit");
+                yield return CaptureUtil.Shot(dir, "58_back_in_orbit");
             }
             File.WriteAllText(Path.Combine(dir, "lunar_report.txt"), log.ToString());
             yield return Wait(5);
@@ -85,6 +106,5 @@ namespace Karman.Diagnostics
         }
 
         static IEnumerator Wait(int frames) { for (int i = 0; i < frames; i++) yield return null; }
-        static void Shot(string dir, string name) => ScreenCapture.CaptureScreenshot(Path.Combine(dir, name + ".png"));
     }
 }

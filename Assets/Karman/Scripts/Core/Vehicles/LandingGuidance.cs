@@ -15,6 +15,7 @@ namespace Karman.Core.Vehicles
         public double Tau = 2.5;                 // s velocity-error time constant
         public enum Mode { Coast, Braking, Terminal, Landed }
         public Mode Phase { get; private set; } = Mode.Coast;
+        bool descended;   // the coast has been heading down, so a turn upward is the periapsis
 
         /// <param name="v">velocity relative to the rotating surface</param>
         public void Update(Vector3d r, Vector3d v, double mu, double heightAboveTerrain, double maxAccel, bool landed,
@@ -26,7 +27,15 @@ namespace Karman.Core.Vehicles
             Vector3d vh = v - up * vs;
             double vhMag = vh.magnitude;
             if (landed) { Phase = Mode.Landed; throttle = 0; direction = up; return; }
-            if (Phase == Mode.Coast && heightAboveTerrain < StartHeight) Phase = Mode.Braking;
+            if (Phase == Mode.Coast)
+            {
+                // Powered descent starts StartHeight above the terrain, or at periapsis when the ground under it lies
+                // lower than that (a 15 km periapsis over a basin floor never comes within StartHeight; waiting for the
+                // height alone would let the vehicle coast straight back up to orbit).
+                if (vs < -0.5) descended = true;
+                bool atPeriapsis = descended && vs >= 0 && heightAboveTerrain < 3 * StartHeight;
+                if (heightAboveTerrain < StartHeight || atPeriapsis) Phase = Mode.Braking;
+            }
             if (Phase == Mode.Braking && vhMag < 3 && heightAboveTerrain < 400) Phase = Mode.Terminal;
             if (Phase == Mode.Coast) { throttle = 0; direction = (-v).normalized; return; }
 

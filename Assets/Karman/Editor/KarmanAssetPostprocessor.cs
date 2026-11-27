@@ -31,6 +31,8 @@ namespace Karman.EditorTools
                 ti.maxTextureSize = 2048;
                 ti.sRGBTexture = file.EndsWith("_diff");
                 if (file.EndsWith("_nor")) ti.textureType = TextureImporterType.NormalMap;
+                // Noise is data: linear, and uncompressed so block artefacts do not show up as detail.
+                if (file.StartsWith("noise_")) { ti.sRGBTexture = false; ti.textureCompression = TextureImporterCompression.Uncompressed; ti.streamingMipmaps = false; }
             }
         }
 

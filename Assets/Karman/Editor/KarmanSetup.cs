@@ -32,6 +32,13 @@ namespace Karman.EditorTools
         public const string MenuScenePath = Root + "/Scenes/MainMenu.unity";
         public const string VabScenePath = Root + "/Scenes/VAB.unity";
 
+        /// <summary>
+        /// The LROC colour mosaic is stretched for display (area-weighted linear mean 0.30); the Moon's mean normal
+        /// albedo is about 0.12. This factor brings the texture to a physical albedo (mean 0.13) for both the distant
+        /// Moon sphere and the terrain patches, so the Moon keeps its brightness when the terrain takes over.
+        /// </summary>
+        const float MoonAlbedoScale = 0.45f;
+
         [MenuItem("Karman/Rebuild Flight Scene")]
         public static void BuildAll()
         {
@@ -185,25 +192,31 @@ namespace Karman.EditorTools
             Directory.CreateDirectory(Path.GetDirectoryName(scenePath));
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
+            // Photometry: the self-lit body shaders output reflectance relative to a white Lambertian surface facing the
+            // Sun, and SpaceLighting scales that by E_sun / π (nits). _SunIntensity = 1 therefore means "physically lit by
+            // the same 120,000 lx Sun as the HDRP-lit vessel and terrain", so one exposure fits everything in a frame.
             var earthMat = Mat("Earth", "Karman/Earth");
-            earthMat.SetFloat("_SunIntensity", 2.6f);   // HDRP: the physically based sky adds the atmosphere's light on top
+            earthMat.SetFloat("_SunIntensity", 1f);
+            // City lights are far brighter than reality (so the night side reads at the darkest exposure the camera
+            // adapts to) but well below sunlit ground, so they fade out of day-exposed frames.
+            earthMat.SetFloat("_NightIntensity", 0.9f);
             earthMat.SetTexture("_DayTex", Load<Texture2D>($"{Tex}/Earth/8k_earth_daymap.jpg"));
             earthMat.SetTexture("_NightTex", Load<Texture2D>($"{Tex}/Earth/8k_earth_nightmap.jpg"));
             earthMat.SetTexture("_CloudTex", Load<Texture2D>($"{Tex}/Earth/8k_earth_clouds.jpg"));
             earthMat.SetTexture("_NormalTex", Load<Texture2D>($"{Tex}/Earth/2k_earth_normal_map.png"));
             earthMat.SetTexture("_SpecTex", Load<Texture2D>($"{Tex}/Earth/2k_earth_specular_map.png"));
+            earthMat.SetTexture("_NoiseTex", NoiseTexture());
             var atmoMat = Mat("EarthAtmosphere", "Karman/Atmosphere");
             atmoMat.SetFloat("_SunIntensity", 11f);
             var moonMat = Mat("Moon", "Karman/Moon");
             moonMat.SetTexture("_ColorTex", Load<Texture2D>($"{Tex}/Moon/moon_color_4k.png"));
             moonMat.SetTexture("_SlopeTex", Load<Texture2D>($"{Tex}/Moon/moon_normal_eastnorth.png"));
-            moonMat.SetFloat("_Albedo", 0.75f);
+            moonMat.SetFloat("_SunIntensity", 1f);
+            moonMat.SetFloat("_Albedo", MoonAlbedoScale);
             moonMat.SetFloat("_NormalStrength", 0.9f);
             var sunMat = Mat("Sun", "Karman/Planet");
             sunMat.SetTexture("_MainTex", Load<Texture2D>($"{Tex}/Planets/2k_sun.jpg"));
             sunMat.SetFloat("_Emission", 40f);
-            var skyMat = Mat("Sky", "Karman/Sky");
-            skyMat.SetTexture("_MainTex", Load<Texture2D>($"{Tex}/Sky/8k_stars_milky_way.jpg"));
             var lineMat = Mat("MapLine", "Karman/Line");
             var plumeMat = Mat("Plume", "Karman/Plume");
             var glareMat = Mat("SunGlare", "Karman/Glare");
@@ -211,8 +224,10 @@ namespace Karman.EditorTools
             var ringMat = Mat("SaturnRing", "Karman/Ring");
             ringMat.SetTexture("_MainTex", Load<Texture2D>($"{Tex}/Planets/2k_saturn_ring_alpha.png"));
             var planetTemplate = Mat("PlanetTemplate", "Karman/Planet");
+            planetTemplate.SetFloat("_SunIntensity", 1f);
 
-            RenderSettings.skybox = skyMat;
+            // HDRP draws the sky (physically based sky + star cubemap in the volume profile); no legacy skybox.
+            RenderSettings.skybox = null;
             RenderSettings.ambientMode = AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.012f, 0.014f, 0.02f);
             RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
@@ -268,6 +283,7 @@ namespace Karman.EditorTools
             loader.moonDem = Load<TextAsset>($"{Root}/Data/Moon/moon_dem16.bytes");
             var moonTerrainMat = Mat("MoonTerrain", "Karman/MoonTerrain");
             DoubleSided(moonTerrainMat);
+            moonTerrainMat.SetFloat("_Albedo", MoonAlbedoScale);
             moonTerrainMat.SetTexture("_ColorTex", Load<Texture2D>($"{Tex}/Moon/moon_color_4k.png"));
             moonTerrainMat.SetTexture("_NearDiff", PbrMaterials.Tex("gravelly_sand", "diff"));
             moonTerrainMat.SetTexture("_NearNor", PbrMaterials.Tex("gravelly_sand", "nor"));
@@ -286,6 +302,7 @@ namespace Karman.EditorTools
                 var m = Mat("Planet_" + planetIds[i], "Karman/Planet");
                 var t = Load<Texture2D>($"{Tex}/Planets/{planetTex[i]}");
                 m.SetTexture("_MainTex", t);
+                m.SetFloat("_SunIntensity", 1f);   // shown as if at 1 AU: the 1/r² falloff is left to the eye's adaptation
                 texList.Add(t);
                 if (planetIds[i] == SolarSystemData.Venus) m.SetColor("_RimColor", new Color(1f, 0.9f, 0.7f, 0.6f));
                 if (planetIds[i] == SolarSystemData.Mars) m.SetColor("_RimColor", new Color(1f, 0.6f, 0.45f, 0.25f));
@@ -365,7 +382,13 @@ namespace Karman.EditorTools
             mapCam.clearFlags = CameraClearFlags.Skybox;
             mapCam.fieldOfView = 50;
             mapCam.allowHDR = true;
-            HdCamera(mapCam);
+            // The map is a diagram: bodies are specks on black, so metering cannot work. It gets a fixed daylight
+            // exposure from a volume on the map layer that only the map camera sees.
+            HdCamera(mapCam).volumeLayerMask = 1 | (1 << MapView.Layer);
+            var mapVolGo = new GameObject("Map Volume") { layer = MapView.Layer };
+            var mapVol = mapVolGo.AddComponent<Volume>();
+            mapVol.isGlobal = true; mapVol.priority = 10;
+            mapVol.sharedProfile = BuildMapProfile();
 
             // Post-processing
             var volGo = new GameObject("Global Volume");
@@ -530,13 +553,17 @@ namespace Karman.EditorTools
             sky.atmosphericScattering.Override(true);
             sky.aerosolDensity.Override(sky.aerosolDensity.value * 0.4f);   // clearer limb and less milky Earth from orbit
             var stars = StarsCubemap();
-            if (stars != null) { sky.spaceEmissionTexture.Override(stars); sky.spaceEmissionMultiplier.Override(1500f); }
+            if (stars != null) { sky.spaceEmissionTexture.Override(stars); sky.spaceEmissionMultiplier.Override(600f); }
+            // Exposure, as a camera in space would be set: for the sunlit subject, however small it is in the frame.
+            // Metering the brightest fifth of the picture (less the top 1 %: Sun, glints) keeps black sky from dragging
+            // the exposure up; EV 15.2 holds sunlit cloud (34,000 nits) just below white, EV 9 is the darkest adaptation
+            // (night side, eclipse), six stops down.
             var exposure = profile.Add<Exposure>(true);
             exposure.mode.Override(ExposureMode.AutomaticHistogram);
-            exposure.limitMin.Override(10.5f);
-            exposure.histogramPercentages.Override(new Vector2(55f, 97f));   // meter on the bright subject, not black space
-            exposure.limitMax.Override(15.5f);
-            exposure.compensation.Override(1.2f);
+            exposure.histogramPercentages.Override(new Vector2(80f, 99f));
+            exposure.limitMin.Override(9f);
+            exposure.limitMax.Override(15.2f);
+            exposure.compensation.Override(1.6f);
             exposure.adaptationSpeedDarkToLight.Override(2.5f);
             exposure.adaptationSpeedLightToDark.Override(1.5f);
             var tone = profile.Add<Tonemapping>(true);
@@ -568,6 +595,78 @@ namespace Karman.EditorTools
             vig.intensity.Override(0.18f);
             var mb = profile.Add<MotionBlur>(true); mb.intensity.Override(0f);       // time warp makes motion blur smear everything
             var dof = profile.Add<DepthOfField>(true); dof.focusMode.Override(DepthOfFieldMode.Off);
+            foreach (var c in profile.components) AssetDatabase.AddObjectToAsset(c, profile);
+            EditorUtility.SetDirty(profile);
+            AssetDatabase.SaveAssets();
+            return profile;
+        }
+
+        /// <summary>
+        /// Tileable fractal noise (256², one channel, mean 0.5) used by the planet shaders for structure below the
+        /// resolution of the global maps. Generated once and kept as a project-owned asset.
+        /// </summary>
+        internal static Texture2D NoiseTexture()
+        {
+            string path = $"{Tex}/FX/noise_fbm.png";
+            if (!File.Exists(path))
+            {
+                const int N = 256;
+                var rng = new System.Random(20261126);
+                // Periodic value noise: a lattice of period P wraps exactly, so every octave tiles.
+                float[] Octave(int period)
+                {
+                    var lattice = new float[period * period];
+                    for (int k = 0; k < lattice.Length; k++) lattice[k] = (float)rng.NextDouble();
+                    var o = new float[N * N];
+                    for (int y = 0; y < N; y++)
+                    for (int x = 0; x < N; x++)
+                    {
+                        float fx = (float)x / N * period, fy = (float)y / N * period;
+                        int x0 = (int)fx, y0 = (int)fy; float tx = fx - x0, ty = fy - y0;
+                        tx = tx * tx * tx * (tx * (tx * 6 - 15) + 10); ty = ty * ty * ty * (ty * (ty * 6 - 15) + 10);
+                        int x1 = (x0 + 1) % period, y1 = (y0 + 1) % period;
+                        float a = lattice[y0 * period + x0], b = lattice[y0 * period + x1], c = lattice[y1 * period + x0], d = lattice[y1 * period + x1];
+                        o[y * N + x] = Mathf.Lerp(Mathf.Lerp(a, b, tx), Mathf.Lerp(c, d, tx), ty);
+                    }
+                    return o;
+                }
+                var sum = new float[N * N];
+                float amp = 1, norm = 0;
+                foreach (int period in new[] { 4, 8, 16, 32, 64, 128 })
+                {
+                    var o = Octave(period);
+                    for (int k = 0; k < sum.Length; k++) sum[k] += o[k] * amp;
+                    norm += amp; amp *= 0.55f;
+                }
+                // Stretch to the full range around a mean of 0.5 so "noise - 0.5" is a balanced signed detail term.
+                float mean = 0, min = float.MaxValue, max = float.MinValue;
+                for (int k = 0; k < sum.Length; k++) { sum[k] /= norm; mean += sum[k]; min = Mathf.Min(min, sum[k]); max = Mathf.Max(max, sum[k]); }
+                mean /= sum.Length;
+                float half = Mathf.Max(max - mean, mean - min);
+                var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
+                for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float v = Mathf.Clamp01(0.5f + 0.5f * (sum[y * N + x] - mean) / half);
+                    tex.SetPixel(x, y, new Color(v, v, v, 1));
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllBytes(path, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+                AssetDatabase.ImportAsset(path);
+            }
+            return Load<Texture2D>(path);
+        }
+
+        static VolumeProfile BuildMapProfile()
+        {
+            string path = $"{SettingsDir}/MapPostProcess.asset";
+            AssetDatabase.DeleteAsset(path);
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            AssetDatabase.CreateAsset(profile, path);
+            var exposure = profile.Add<Exposure>(true);
+            exposure.mode.Override(ExposureMode.Fixed);
+            exposure.fixedExposure.Override(14.3f);
             foreach (var c in profile.components) AssetDatabase.AddObjectToAsset(c, profile);
             EditorUtility.SetDirty(profile);
             AssetDatabase.SaveAssets();

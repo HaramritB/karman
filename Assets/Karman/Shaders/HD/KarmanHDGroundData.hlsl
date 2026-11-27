@@ -104,6 +104,6 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     k.occlusion = lerp(1, armG.r, nearW * (1 - ocean) * (1 - flatten));
     float night = 1 - smoothstep(-0.12, 0.06, dot(Ngeo, normalize(_SunDir.xyz)));
     k.emission = pow(SAMPLE_TEXTURE2D(_NightTex, sampler_NightTex, uvG).rgb, 1.6) * float3(1, 0.82, 0.55) * night * _NightIntensity * (1 - nearW)
-                 * (_KarmanUnlitScale > 0 ? _KarmanUnlitScale : 37500.0);
+                 * (_KarmanUnlitScale > 0 ? _KarmanUnlitScale : 38197.0);
     KarmanSurfaceToHDRP(input, V, posInput, k, surfaceData, builtinData);
 }

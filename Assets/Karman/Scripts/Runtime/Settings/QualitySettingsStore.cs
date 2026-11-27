@@ -23,6 +23,7 @@ namespace Karman.Settings
             Preset = (QualityPreset)PlayerPrefs.GetInt("karman.quality", (int)QualityPreset.High);
             MasterVolume = PlayerPrefs.GetFloat("karman.volume", 0.8f);
             Use1440p = PlayerPrefs.GetInt("karman.1440p", 0) == 1;
+            if (Karman.Simulation.CommandLine.Has("-karmanMute")) AudioListener.volume = 0;   // automated runs
             Apply(Preset, false);
         }
 

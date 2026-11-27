@@ -36,6 +36,7 @@ namespace Karman.Rendering
         readonly Stack<Mesh> meshPool = new Stack<Mesh>();
         static readonly Vector3[] FaceNormals = { Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
         Transform patchRoot;
+        bool colourFormatChecked;
 
         sealed class Node
         {
@@ -51,7 +52,14 @@ namespace Karman.Rendering
             public int lastVisible;
         }
 
-        sealed class MeshData { public Vector3[] v; public Vector3[] n; public Vector3[] dir; public Vector3[] detail; public int[] tris; }
+        /// <summary>
+        /// Per-vertex data. HDRP's Lit vertex path carries only two floats per UV channel, so the two 3-vectors the
+        /// surface shader needs are split: uv0 = direction.xy, uv1 = detail.xy, colour = (direction.z, detail.z, 0, 1).
+        /// </summary>
+        sealed class MeshData { public Vector3[] v; public Vector3[] n; public Vector2[] dirXY; public Vector2[] detailXY; public Color[] zz; public int[] tris; }
+
+        /// <summary>Detail-texture coordinates repeat every <see cref="DetailPeriod"/> metres (a multiple of every tiling).</summary>
+        const double DetailPeriod = 2048;
 
         void Start()
         {
@@ -68,10 +76,14 @@ namespace Karman.Rendering
         {
             var n = new Node { face = face, depth = depth, u0 = u0, v0 = v0, size = size };
             Vector3d c = Direction(face, u0 + size / 2, v0 + size / 2);
-            n.center = c * radius;
+            // The centre sits on the terrain, not on the reference sphere, so the LOD distance is measured to the real
+            // surface. (Padding every patch by the body's maximum relief instead made every patch within several
+            // kilometres of the camera split to the deepest level.)
+            double h = terrain != null ? terrain.Height(new Vector3d(c.x, c.z, c.y)) : 0;
+            n.center = c * (radius + h);
             Vector3d a = Direction(face, u0, v0) * radius, b = Direction(face, u0 + size, v0 + size) * radius;
             n.edge = (a - b).magnitude / Math.Sqrt(2);
-            n.bound = n.edge * 0.75 + (terrain?.MaxAbsHeight ?? 0);
+            n.bound = n.edge * 0.5;
             return n;
         }
 
@@ -119,7 +131,7 @@ namespace Karman.Rendering
 
         void Visit(Node n, Vector3d cam, int frame)
         {
-            double dist = (cam - n.center).magnitude - n.bound * 0.5;
+            double dist = Math.Max(0, (cam - n.center).magnitude - n.bound);
             // Horizon culling: skip patches entirely behind the limb.
             double camR = cam.magnitude;
             if (n.depth > 1)
@@ -181,8 +193,15 @@ namespace Karman.Rendering
                 if (n.job.IsFaulted) { Debug.LogException(n.job.Exception); n.job = null; continue; }
                 var d = n.job.Result; n.job = null;
                 var mesh = meshPool.Count > 0 ? meshPool.Pop() : new Mesh { indexFormat = IndexFormat.UInt32 };
-                mesh.SetVertices(d.v); mesh.SetNormals(d.n); mesh.SetUVs(0, d.dir); mesh.SetUVs(1, d.detail); mesh.SetTriangles(d.tris, 0);
+                mesh.SetVertices(d.v); mesh.SetNormals(d.n); mesh.SetUVs(0, d.dirXY); mesh.SetUVs(1, d.detailXY); mesh.SetColors(d.zz); mesh.SetTriangles(d.tris, 0);
                 mesh.RecalculateBounds();
+                if (!colourFormatChecked)
+                {
+                    // The colour channel carries signed, unbounded floats; an 8-bit normalised format would destroy them.
+                    colourFormatChecked = true;
+                    var fmt = mesh.GetVertexAttributeFormat(VertexAttribute.Color);
+                    if (fmt != VertexAttributeFormat.Float32) Debug.LogError($"[TerrainQuadtree] vertex colour stored as {fmt}, expected Float32: terrain colour and detail will be wrong");
+                }
                 n.mesh = mesh; BuiltPatches++;
                 n.go = new GameObject($"Patch f{n.face} d{n.depth}");
                 n.go.transform.SetParent(patchRoot, false);
@@ -223,7 +242,14 @@ namespace Karman.Rendering
                 pos[j * G + i] = d * (R + h);
             }
             int vCount = (N + 1) * (N + 1) + 4 * (N + 1);
-            var v = new Vector3[vCount]; var nm = new Vector3[vCount]; var dir = new Vector3[vCount]; var det = new Vector3[vCount];
+            var v = new Vector3[vCount]; var nm = new Vector3[vCount];
+            var dirXY = new Vector2[vCount]; var detXY = new Vector2[vCount]; var zz = new Color[vCount];
+            // Detail coordinates are measured from the patch centre snapped to the detail period: continuous across the
+            // patch (no wrap seam inside a triangle), small enough for float precision where metre-scale detail is
+            // visible, and in phase between neighbouring patches because every tiling divides the period.
+            var detailOrigin = new Vector3d(Math.Floor(n.center.x / DetailPeriod) * DetailPeriod,
+                                            Math.Floor(n.center.y / DetailPeriod) * DetailPeriod,
+                                            Math.Floor(n.center.z / DetailPeriod) * DetailPeriod);
             int idx = 0;
             for (int j = 0; j <= N; j++)
             for (int i = 0; i <= N; i++)
@@ -233,7 +259,11 @@ namespace Karman.Rendering
                 Vector3d dy = pos[(j + 2) * G + (i + 1)] - pos[j * G + (i + 1)];
                 Vector3d normal = Vector3d.Cross(dy, dx).normalized;
                 if (Vector3d.Dot(normal, p) < 0) normal = -normal;
-                v[idx] = ToF(p - n.center); nm[idx] = ToF(normal); dir[idx] = ToF(p.normalized); det[idx] = Wrap(p); idx++;
+                Vector3d dn = p.normalized, dp = p - detailOrigin;
+                v[idx] = ToF(p - n.center); nm[idx] = ToF(normal);
+                dirXY[idx] = new Vector2((float)dn.x, (float)dn.y); detXY[idx] = new Vector2((float)dp.x, (float)dp.y);
+                zz[idx] = new Color((float)dn.z, (float)dp.z, 0, 1);
+                idx++;
             }
             var tris = new List<int>(N * N * 6 + 4 * N * 6);
             int W = N + 1;
@@ -257,7 +287,7 @@ namespace Karman.Rendering
                 {
                     Vector3d p = new Vector3d(v[k].x, v[k].y, v[k].z) + n.center;
                     Vector3d q = p - p.normalized * drop;
-                    v[idx] = ToF(q - n.center); nm[idx] = nm[k]; dir[idx] = dir[k]; det[idx] = det[k]; idx++;
+                    v[idx] = ToF(q - n.center); nm[idx] = nm[k]; dirXY[idx] = dirXY[k]; detXY[idx] = detXY[k]; zz[idx] = zz[k]; idx++;
                 }
                 for (int s = 0; s < ring.Length - 1; s++)
                 {
@@ -266,18 +296,10 @@ namespace Karman.Rendering
                     tris.Add(b); tris.Add(c); tris.Add(d);
                 }
             }
-            return new MeshData { v = v, n = nm, dir = dir, detail = det, tris = tris.ToArray() };
+            return new MeshData { v = v, n = nm, dirXY = dirXY, detailXY = detXY, zz = zz, tris = tris.ToArray() };
         }
 
         static int[] Ring(Func<int, int> f, int N) { var r = new int[N + 1]; for (int i = 0; i <= N; i++) r[i] = f(i); return r; }
-        /// <summary>Body-fixed metres wrapped to a 2048 m period (a multiple of every detail-texture tiling) so the
-        /// shader gets precise, seamless coordinates for metre-scale detail on a 1,737 km sphere.</summary>
-        static Vector3 Wrap(Vector3d p)
-        {
-            const double P = 2048;
-            double W(double x) { x %= P; return x < 0 ? x + P : x; }
-            return new Vector3((float)W(p.x), (float)W(p.y), (float)W(p.z));
-        }
 
         static Vector3 ToF(Vector3d d) => new Vector3((float)d.x, (float)d.y, (float)d.z);
     }

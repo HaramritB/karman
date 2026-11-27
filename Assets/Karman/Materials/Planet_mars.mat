@@ -31,7 +31,7 @@ Material:
     m_Floats:
     - _Emission: 0
     - _Minnaert: 0.9
-    - _SunIntensity: 4
+    - _SunIntensity: 1
     m_Colors:
     - _RimColor: {r: 1, g: 0.6, b: 0.45, a: 0.25}
     - _SunDir: {r: 1, g: 0, b: 0, a: 0}

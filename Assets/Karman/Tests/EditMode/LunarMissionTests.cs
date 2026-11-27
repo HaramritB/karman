@@ -47,14 +47,14 @@ namespace Karman.Tests
 
         public struct LandingResult { public bool Landed, Crashed; public double VVert, VHoriz, Time, PropLeft, DvUsed, Lat, Lon, TerrainH; public string Log; public FlightVehicle Vehicle; public SpacecraftTrajectory Traj; public SolarSystem Sys; }
 
-        public static LandingResult Land()
+        public static LandingResult Land(StateVector? start = null)
         {
             var (sys, moon) = Moon();
             var veh = new FlightVehicle(LunarLander(), L);
             veh.Stage(); // light the descent engine (stage 1)
             veh.VerticalExtent(out float bottom, out _);
             double standoff = veh.CenterOfMass[1] - bottom;
-            var s0 = CircularLunarOrbit(moon, 100_000, 10);
+            var s0 = start ?? CircularLunarOrbit(moon, 100_000, 10);
             var traj = new SpacecraftTrajectory(sys, moon, s0, T0);
             var log = new System.Text.StringBuilder();
             double t = 0, m0 = veh.Mass;
@@ -128,6 +128,80 @@ namespace Karman.Tests
             var r = Land();
             TestContext.WriteLine($"Touchdown {r.VVert:F2} m/s vertical, {r.VHoriz:F2} m/s horizontal at {r.Lat:F2}°, {r.Lon:F2}° (terrain {r.TerrainH:F0} m) after {r.Time:F0} s; descent Δv {r.DvUsed:F0} m/s; propellant left {r.PropLeft:F0} kg\n{r.Log}");
             Assert.IsTrue(r.Landed, "soft landing");
+        }
+
+        [Test]
+        public void SoftLandingFromEveryPartOfTheOrbit()
+        {
+            // The same descent started from twelve points around the orbit ends over highlands, basin floors and crater
+            // rims. Every one must reach the ground softly: powered descent may not depend on the terrain under the
+            // periapsis happening to be high.
+            var (_, moon) = Moon();
+            var s0 = CircularLunarOrbit(moon, 100_000, 10);
+            var orbit = KeplerOrbit.FromState(s0, moon.Mu, T0);
+            var report = new System.Text.StringBuilder();
+            int failures = 0;
+            for (int k = 0; k < 12; k++)
+            {
+                var start = orbit.StateAt(T0 + k / 12.0 * orbit.Period);
+                var r = Land(start);
+                report.AppendLine($"start {k * 30,3}°: landed {r.Landed}, crashed {r.Crashed}, {r.VVert:F2} m/s vertical, {r.VHoriz:F2} m/s horizontal at {r.Lat:F2}°, {r.Lon:F2}°, terrain {r.TerrainH:F0} m, propellant left {r.PropLeft:F0} kg");
+                if (!r.Landed) failures++;
+            }
+            TestContext.WriteLine(report.ToString());
+            Assert.AreEqual(0, failures, "descents that did not end in a soft landing");
+        }
+
+        [Test]
+        public void DeorbitPointAnalyticCases()
+        {
+            // Equatorial prograde orbit about +Z, Sun along +X in the orbit plane: the 30° sites are at ±60°.
+            var v = new Vector3d(0, 1, 0);
+            double w0 = LunarDescentPlanning.DegreesToDeorbitPoint(new Vector3d(1, 0, 0), v, new Vector3d(1, 0, 0), 30, 195);
+            Assert.AreEqual(105, w0, 1e-9, "from the subsolar point the site at -60° is reached first: -60 - 195 + 360");
+            // Starting exactly one descent arc before the morning site means burning now.
+            double a = (-60 - 195) * Constants.Deg2Rad;
+            var r1 = new Vector3d(Math.Cos(a), Math.Sin(a), 0); var v1 = new Vector3d(-Math.Sin(a), Math.Cos(a), 0);
+            double w1 = LunarDescentPlanning.DegreesToDeorbitPoint(r1, v1, new Vector3d(1, 0, 0), 30, 195);
+            Assert.That(Math.Min(w1, 360 - w1), Is.LessThan(1e-6));
+            // Sun 20° out of the plane: the site angle obeys sin(elev) = cos(phi) cos(beta).
+            double beta = 20 * Constants.Deg2Rad;
+            var sun = new Vector3d(Math.Cos(beta), 0, Math.Sin(beta));
+            double w2 = LunarDescentPlanning.DegreesToDeorbitPoint(new Vector3d(1, 0, 0), v, sun, 30, 195);
+            double phiSite = Math.Acos(Math.Sin(30 * Constants.Deg2Rad) / Math.Cos(beta)) * Constants.Rad2Deg;
+            Assert.AreEqual(-phiSite - 195 + 360, w2, 1e-9);
+            // Elevation helper.
+            Assert.AreEqual(30, LunarDescentPlanning.SunElevationDeg(new Vector3d(Math.Cos(Math.PI / 3), Math.Sin(Math.PI / 3), 0), new Vector3d(1, 0, 0)), 1e-9);
+        }
+
+        [Test]
+        public void DeorbitPointGivesSunlitLandingSite()
+        {
+            // Coast to the planned deorbit point, then fly the same descent as the game: the Sun must stand well above
+            // the horizon at touchdown (the unplanned descent ended on the terminator, with the surface in darkness).
+            var (sys, moon) = Moon();
+            var s0 = CircularLunarOrbit(moon, 100_000, 10);
+            Vector3d toSun = sys.Sun.Position - moon.Position;
+            // Descent arc predicted from the vehicle, as the in-game assistant does.
+            var veh = new FlightVehicle(LunarLander(), L);
+            veh.Stage();
+            double accel = MaxAccel(veh);
+            double ve = L(veh.Craft.Get(veh.BurningEngines()[0]).PartId).Engine.VacuumIsp * Constants.StandardGravity;
+            double arcPlan = LunarDescentPlanning.DescentArcDeg(moon.Mu, s0.position.magnitude, moon.Radius + 15_000, accel, ve);
+            double wait = LunarDescentPlanning.DegreesToDeorbitPoint(s0.position, s0.velocity, toSun, 30, arcPlan);
+            var orbit = KeplerOrbit.FromState(s0, moon.Mu, T0);
+            var start = orbit.StateAt(T0 + wait / 360.0 * orbit.Period);
+            var r = Land(start);
+            TestContext.WriteLine($"Lander {accel:F3} m/s², ve {ve:F0} m/s: planned arc {arcPlan:F1}°, waited {wait:F1}° of orbit. Landed {r.Landed}, crashed {r.Crashed}, " +
+                                  $"{r.VVert:F2} m/s vertical, {r.VHoriz:F2} m/s horizontal at {r.Lat:F2}°, {r.Lon:F2}° (terrain {r.TerrainH:F0} m)\n{r.Log}");
+            Assert.IsTrue(r.Landed, "soft landing from the planned deorbit point");
+            var touchdown = r.Traj.RelativeState.position;
+            double elev = LunarDescentPlanning.SunElevationDeg(touchdown, toSun);
+            double arcFlown = 360 - Vector3d.Angle(start.position, touchdown) * Constants.Rad2Deg;
+            TestContext.WriteLine($"Lander {accel:F3} m/s², ve {ve:F0} m/s: planned arc {arcPlan:F1}°, flown {arcFlown:F1}°; waited {wait:F1}° of orbit; " +
+                                  $"Sun elevation at touchdown {elev:F1}° at {r.Lat:F2}°, {r.Lon:F2}°");
+            Assert.AreEqual(arcFlown, arcPlan, 6.0, "predicted descent arc vs simulated descent");
+            Assert.That(elev, Is.InRange(22.0, 38.0), "Sun elevation at the landing site (target 30°)");
         }
 
         [Test]

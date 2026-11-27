@@ -80,6 +80,7 @@ namespace Karman.EditorTools
             groundMat.SetTexture("_DayTex", earthMat.GetTexture("_DayTex"));
             groundMat.SetTexture("_NightTex", earthMat.GetTexture("_NightTex"));
             groundMat.SetTexture("_SpecTex", earthMat.GetTexture("_SpecTex"));
+            groundMat.SetFloat("_NightIntensity", earthMat.GetFloat("_NightIntensity"));   // same city lights as the globe
             groundMat.SetTexture("_GrassDiff", PbrMaterials.Tex("sparse_grass", "diff"));
             groundMat.SetTexture("_GrassNor", PbrMaterials.Tex("sparse_grass", "nor"));
             groundMat.SetTexture("_GrassArm", PbrMaterials.Tex("sparse_grass", "arm"));

@@ -1,5 +1,7 @@
-// Lunar terrain patches for HDRP: LROC colour by direction (texCoord0 = unit direction in body space), triplanar CC0
-// regolith detail on wrapped body-fixed coordinates (texCoord1), lit by HDRP (sun shadows, earthshine light).
+// Lunar terrain patches for HDRP: LROC colour by body-space direction, triplanar CC0 regolith detail on patch-relative
+// body-fixed metres, lit by HDRP (sun shadows, earthshine light).
+// HDRP's Lit vertex path carries two floats per UV channel, so TerrainQuadtree splits both 3-vectors:
+//   direction = (texCoord0.xy, color.r)      detail position = (texCoord1.xy, color.g)
 #define GetSurfaceAndBuiltinData HDLit_GetSurfaceAndBuiltinData
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Material/Lit/LitData.hlsl"
 #undef GetSurfaceAndBuiltinData
@@ -26,8 +28,8 @@ void KTri(TEXTURE2D_PARAM(albedoTex, albedoSamp), TEXTURE2D_PARAM(norTex, norSam
 
 void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs posInput, out SurfaceData surfaceData, out BuiltinData builtinData RAY_TRACING_OPTIONAL_PARAMETERS)
 {
-    float3 d = normalize(input.texCoord0.xyz);
-    float3 detailP = input.texCoord1.xyz;
+    float3 d = normalize(float3(input.texCoord0.xy, input.color.r));
+    float3 detailP = float3(input.texCoord1.xy, input.color.g);
     float3 albedo = SAMPLE_TEXTURE2D(_ColorTex, sampler_ColorTex, KarmanEquirectUV(d)).rgb * _Albedo;
     float dist = length(input.positionRWS);
     float3 nOS = normalize(TransformWorldToObjectNormal(input.tangentToWorld[2]));

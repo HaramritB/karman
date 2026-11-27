@@ -27,7 +27,8 @@ namespace Karman.UI
         Label sasChip, assistChip, chuteChip;
         Label ap, pe, timeAp, nodeLine;
         Label inc, ecc, period, timePe, latlon, light, heat, thrust, dv, prop, machQ, refBody, orbV, surfV;
-        VisualElement throttleFill, stageList, details, help, status;
+        VisualElement throttleFill, stageList, details, help, status, navCluster;
+        bool mapLayout, detailsWanted;
         Label stageHeader;
         float toastUntil, nextAnalysis, nextRefresh;
         Karman.Core.Vehicles.CraftAnalysis analysis;
@@ -133,6 +134,7 @@ namespace Karman.UI
 
             // ---- Navball cluster (bottom-centre)
             var cluster = Abs(root, bottom: 18);
+            navCluster = cluster;
             cluster.style.left = 0; cluster.style.right = 0;
             cluster.style.flexDirection = FlexDirection.Row; cluster.style.justifyContent = Justify.Center; cluster.style.alignItems = Align.FlexEnd;
 
@@ -233,7 +235,17 @@ namespace Karman.UI
             }
             if (kb != null && kb.nKey.wasPressedThisFrame && ManeuverPlanner.Instance != null) ManeuverPlanner.Instance.BeginExecution();
             if (kb != null && kb.f1Key.wasPressedThisFrame) Toggle(help);
-            if (kb != null && kb.tabKey.wasPressedThisFrame) Toggle(details);
+            // The map owns the bottom-centre and the Tab key (focus cycling): the navball cluster and the telemetry
+            // panel give way to the planning panel while it is open, and come back as they were.
+            bool map = Karman.Map.MapView.IsActive;
+            if (kb != null && kb.tabKey.wasPressedThisFrame && !map) detailsWanted = !detailsWanted;
+            if (map != mapLayout)
+            {
+                mapLayout = map;
+                navCluster.style.display = map ? DisplayStyle.None : DisplayStyle.Flex;
+            }
+            var wantDetails = detailsWanted && !map ? DisplayStyle.Flex : DisplayStyle.None;
+            if (details.style.display != wantDetails) details.style.display = wantDetails;
             if (Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + 0.1f;
             Refresh();
@@ -248,7 +260,7 @@ namespace Karman.UI
 
         static void Toggle(VisualElement e) => e.style.display = e.style.display == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None;
 
-        public void ShowDetails(bool on) { if (details != null) details.style.display = on ? DisplayStyle.Flex : DisplayStyle.None; }
+        public void ShowDetails(bool on) => detailsWanted = on;
 
         void Refresh()
         {

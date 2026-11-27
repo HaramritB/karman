@@ -105,8 +105,9 @@ namespace Karman.Map
             apLabel = MakeLabel(root, "Ap", HudStyle.Warn); peLabel = MakeLabel(root, "Pe", HudStyle.Warn);
             apLabel.pickingMode = PickingMode.Ignore; peLabel.pickingMode = PickingMode.Ignore;
 
+            // Top-left, under the mission chip: the flight HUD keeps its orbit card in the top-right corner.
             var info = HudStyle.PanelBox(300);
-            info.style.position = Position.Absolute; info.style.right = 18; info.style.top = 70;
+            info.style.position = Position.Absolute; info.style.left = 28; info.style.top = 70;
             info.Add(HudStyle.Title("MAP  ·  TAB focus  ·  M close"));
             infoLabel = new Label(); infoLabel.style.color = HudStyle.Text; infoLabel.style.fontSize = 13; infoLabel.style.whiteSpace = WhiteSpace.Normal;
             info.Add(infoLabel);

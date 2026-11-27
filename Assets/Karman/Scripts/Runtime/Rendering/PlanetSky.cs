@@ -23,9 +23,11 @@ namespace Karman.Rendering
         {
             if (volume == null) volume = GetComponent<Volume>();
             if (volume == null || volume.sharedProfile == null) return;
-            volume.sharedProfile.TryGet(out env);
-            volume.sharedProfile.TryGet(out clouds);
-            volume.sharedProfile.TryGet(out fog);
+            // The runtime copy of the profile: the sky centre changes every frame and must not be written to the asset.
+            var profile = volume.profile;
+            profile.TryGet(out env);
+            profile.TryGet(out clouds);
+            profile.TryGet(out fog);
         }
 
         void LateUpdate()
@@ -39,14 +41,8 @@ namespace Karman.Rendering
             env.planetRadius.Override((float)(earth.Radius * 0.001));
             double alt = c.magnitude - earth.Radius;
             // Clouds and height fog only matter inside the lower atmosphere.
-            if (clouds != null) clouds.enable.Override(alt < 8_000);   // the globe's own cloud map takes over above
-            if (fog != null) fog.enabled.Override(alt < 150_000);
-            if (Time.frameCount % 60 == 10)
-            {
-                var sun = RenderSettings.sun != null ? RenderSettings.sun : FindAnyObjectByType<Light>();
-                var cam = Camera.main;
-                Debug.Log($"[PlanetSky] alt {alt:F0} m centre {km} camPos {(cam ? cam.transform.position : Vector3.zero)} sun {(sun ? $"{sun.name} {sun.intensity} {sun.lightUnit} {sun.color} dir {sun.transform.forward} en {sun.enabled}" : "none")}");
-            }
+            if (clouds != null) clouds.enable.Override(alt < 8_000 && !Karman.Diagnostics.PerfToggles.Off("clouds"));   // the globe's own cloud map takes over above
+            if (fog != null) fog.enabled.Override(alt < 150_000 && !Karman.Diagnostics.PerfToggles.Off("fog"));
         }
     }
 }

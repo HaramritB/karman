@@ -24,7 +24,8 @@ namespace Karman.Flight
         public double initialPeriapsisAlt = 280_000;
         public double initialApoapsisAlt = 320_000;
         public double initialInclinationDeg = 28.9;
-        public double startSunAngleDeg = 72;
+        [Tooltip("Angle between the starting point and the subsolar meridian. 40° puts the Sun about 50° above the horizon: a brightly lit Earth below.")]
+        public double startSunAngleDeg = 40;
 
         [Header("Launch site: LC-39A, Kennedy Space Center")]
         public double padLatitude = 28.60822;
@@ -173,14 +174,17 @@ namespace Karman.Flight
             return Quaternion.LookRotation(Coords.ToUnity(east), Coords.ToUnity(r.normalized));
         }
 
-        /// <summary>Circular lunar orbit starting over the sunlit side, a little before the morning terminator.</summary>
+        /// <summary>
+        /// Circular lunar orbit starting over the sunlit side, 30° past local noon (the vessel moves toward decreasing
+        /// <c>a</c>). The landing assistant then coasts to its deorbit point and lands at a sunlit site.
+        /// </summary>
         StateVector LunarOrbitState(CelestialBody moon, CelestialBody sun, double alt, double incDeg)
         {
             Vector3d pole = moon.Orientation.Column(2);
             Vector3d toSun = (sun.Position - moon.Position).normalized;
             Vector3d s = (toSun - pole * Vector3d.Dot(toSun, pole)).normalized;
             Vector3d e = Vector3d.Cross(pole, s);
-            double a = 110 * Constants.Deg2Rad;    // starts on the night side; the descent ends ~half an orbit later in morning light
+            double a = -30 * Constants.Deg2Rad;
             Vector3d rHat = s * Math.Cos(a) - e * Math.Sin(a);
             double inc = incDeg * Constants.Deg2Rad;
             Vector3d h = pole * Math.Cos(inc) + Vector3d.Cross(rHat, pole) * Math.Sin(inc);
